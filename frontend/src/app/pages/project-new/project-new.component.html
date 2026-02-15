@@ -120,6 +120,46 @@
             </div>
           }
 
+          <!-- Upload Progress -->
+          @if (isUploading() && uploadProgress()) {
+            <div class="upload-progress-section">
+              @if (uploadProgress()?.phase === 'uploading') {
+                <div class="upload-progress-header">
+                  <span class="upload-status">Laadin üles: {{ uploadProgress()?.progress }}%</span>
+                  <span class="upload-stats">{{ formatSpeed(uploadProgress()?.speed || 0) }} — ~{{ formatTime(uploadProgress()?.remainingTime || 0) }} jäänud</span>
+                </div>
+                <div class="upload-progress-bar">
+                  <div class="progress-fill" [style.width.%]="uploadProgress()?.progress"></div>
+                </div>
+                <div class="upload-size-info">
+                  {{ formatFileSize(uploadProgress()?.loaded || 0) }} / {{ formatFileSize(uploadProgress()?.total || 0) }}
+                </div>
+              }
+
+              <!-- Processing Steps -->
+              @if (uploadProgress()?.processingSteps) {
+                <div class="processing-steps">
+                  @for (step of uploadProgress()?.processingSteps; track step.label) {
+                    <div class="processing-step" [class.done]="step.status === 'done'" [class.active]="step.status === 'active'">
+                      @if (step.status === 'done') {
+                        <span class="step-icon done">✓</span>
+                      } @else if (step.status === 'active') {
+                        <span class="step-icon active">
+                          <svg class="spinner-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="12"/>
+                          </svg>
+                        </span>
+                      } @else {
+                        <span class="step-icon pending">○</span>
+                      }
+                      <span class="step-label">{{ step.label }}</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+
           <!-- CTA Button -->
           <button
             class="cta-button"
