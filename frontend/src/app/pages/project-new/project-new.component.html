@@ -1,0 +1,381 @@
+<div class="project-new">
+  <!-- Animated Background -->
+  <div class="animated-bg">
+    <div class="gradient-orb orb-1"></div>
+    <div class="gradient-orb orb-2"></div>
+    <div class="gradient-orb orb-3"></div>
+    <div class="grid-overlay"></div>
+    <div class="particles">
+      @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]; track i) {
+        <div class="particle" [style.--delay]="i * 0.3 + 's'" [style.--x]="(i * 17) % 100 + '%'"></div>
+      }
+    </div>
+  </div>
+
+  <!-- Hero Section -->
+  <section class="hero" [class.typed]="heroTyped()">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          <span class="line-1">{{ typewriterText1() }}<span class="cursor" [class.visible]="showCursor1()">|</span></span>
+          <span class="line-2 gradient-text">{{ typewriterText2() }}<span class="cursor" [class.visible]="showCursor2()">|</span></span>
+        </h1>
+        <p class="hero-subtitle" [class.visible]="subtitleVisible()">
+          Tehisintellekt analüüsib sinu projekti, tuvastab kõik ehitusetapid,<br>
+          leiab üle <strong>{{ totalSupplierCount() | number }}</strong> tegija ja arvutab turuhinna — <em>sekunditega.</em>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Input Section -->
+  @if (!result()) {
+    <section class="input-section">
+      <div class="container">
+        <div class="glass-card input-card" [class.loading]="isLoading()">
+          <!-- Textarea -->
+          <div class="textarea-wrapper">
+            <textarea
+              #textarea
+              [ngModel]="description()"
+              (ngModelChange)="description.set($event)"
+              [placeholder]="currentPlaceholder()"
+              [disabled]="isLoading()"
+              rows="5"
+              class="glass-textarea"
+            ></textarea>
+            <div class="word-count">{{ wordCount() }} sõna</div>
+          </div>
+
+          <!-- File Upload Zone -->
+          <div
+            class="upload-zone"
+            [class.drag-over]="isDragOver()"
+            [class.has-file]="selectedFile()"
+            (dragenter)="onDragEnter($event)"
+            (dragleave)="onDragLeave($event)"
+            (drop)="onDrop($event)"
+            (click)="!selectedFile() && triggerFileInput()"
+          >
+            <input
+              #fileInput
+              type="file"
+              accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png,.gif,.bmp,.webp,.ifc,.dwg,.dxf,.rvt,.zip"
+              (change)="onFileSelected($event)"
+              hidden
+            >
+
+            @if (!selectedFile()) {
+              <div class="upload-content">
+                <div class="upload-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                </div>
+                <p class="upload-text">Lohista fail siia või <span>kliki</span></p>
+                <p class="upload-formats">PDF, DOCX, DWG, DXF, IFC, RVT, ZIP, JPG, PNG</p>
+                <div class="format-icons">
+                  <span class="format-badge bim" title="BIM/IFC mudel">🏗️ IFC</span>
+                  <span class="format-badge cad" title="AutoCAD joonis">📐 DWG</span>
+                  <span class="format-badge cad" title="CAD joonis">📏 DXF</span>
+                  <span class="format-badge bim" title="Revit mudel">🏛️ RVT</span>
+                  <span class="format-badge doc" title="Dokumendid">📄 PDF</span>
+                  <span class="format-badge img" title="Pildid">🖼️ IMG</span>
+                  <span class="format-badge zip" title="ZIP arhiiv sisaldab: IFC, DWG, DXF, RVT, PDF, pildid (JPG, PNG, GIF, BMP, WebP)">📦 ZIP</span>
+                </div>
+                <p class="zip-hint">ZIP-arhiiv võib sisaldada: IFC, DWG, DXF, RVT, PDF ja pildifaile</p>
+              </div>
+            } @else {
+              <div class="file-preview">
+                @if (filePreview()) {
+                  <img [src]="filePreview()" alt="Preview" class="preview-image">
+                } @else {
+                  <div class="file-icon-large">
+                    <span class="icon">{{ getFileIcon(selectedFile()?.name) }}</span>
+                    <span class="type-badge">{{ getFileTypeLabel(selectedFile()?.name) }}</span>
+                  </div>
+                }
+                <div class="file-info">
+                  <p class="file-name">{{ selectedFile()?.name }}</p>
+                  <p class="file-size">{{ (selectedFile()?.size || 0) / 1024 | number:'1.0-0' }} KB</p>
+                </div>
+                <button class="file-remove" (click)="removeFile(); $event.stopPropagation()">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+            }
+          </div>
+
+          <!-- Error Message -->
+          @if (error()) {
+            <div class="error-message">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              {{ error() }}
+            </div>
+          }
+
+          <!-- CTA Button -->
+          <button
+            class="cta-button"
+            [class.loading]="isLoading()"
+            (click)="parseProject()"
+            [disabled]="isLoading()"
+          >
+            @if (isLoading()) {
+              <div class="loading-content">
+                <div class="brain-icon">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 2a4 4 0 0 0-4 4v2H6a2 2 0 0 0-2 2v8a6 6 0 0 0 12 0v-8a2 2 0 0 0-2-2h-2V6a4 4 0 0 0-4-4z"/>
+                    <circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/>
+                    <path d="M9 17h6"/>
+                  </svg>
+                </div>
+                <span class="loading-text">{{ loadingText() }}</span>
+              </div>
+            } @else {
+              <span class="button-text">Analüüsi projekti</span>
+              <span class="button-sparkle">✨</span>
+            }
+          </button>
+        </div>
+
+        <!-- Social Proof -->
+        <div class="social-proof">
+          <div class="proof-item">
+            <div class="proof-number">{{ totalSupplierCount() | number }}</div>
+            <div class="proof-label">Ehitusettevõtet</div>
+          </div>
+          <div class="proof-divider"></div>
+          <div class="proof-item">
+            <div class="proof-number">12</div>
+            <div class="proof-label">Kategooriat</div>
+          </div>
+          <div class="proof-divider"></div>
+          <div class="proof-item">
+            <div class="proof-number">10</div>
+            <div class="proof-label">Linna</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- Results Section -->
+  @if (result()) {
+    <section class="results-section" [class.visible]="resultsVisible()">
+      <div class="container">
+        <!-- Project Header -->
+        <div class="project-header glass-card">
+          <div class="project-info">
+            <span class="project-badge">AI Analüüs</span>
+            <h2>{{ result()?.projectTitle }}</h2>
+            <p class="project-location">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+              {{ result()?.location }}
+            </p>
+          </div>
+          <button class="btn-secondary" (click)="resetForm()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Uus päring
+          </button>
+        </div>
+
+        <!-- Selection Controls -->
+        <div class="selection-controls">
+          <span class="stage-count">
+            <span class="count-number">{{ result()?.stages?.length }}</span> etappi tuvastatud
+          </span>
+          <div class="control-buttons">
+            <button class="btn-ghost" (click)="selectAll()">Vali kõik</button>
+            <button class="btn-ghost" (click)="deselectAll()">Tühista</button>
+          </div>
+        </div>
+
+        <!-- Stages List -->
+        <div class="stages-list">
+          @for (stage of result()?.stages; track stage.name; let i = $index) {
+            <div
+              class="stage-card glass-card"
+              [class.visible]="i < visibleCardCount()"
+              [class.expanded]="stage.expanded"
+              [class.selected]="stage.selected"
+              [style.--delay]="i * 0.1 + 's'"
+            >
+              <!-- Connector Line -->
+              @if (i > 0) {
+                <div class="connector-line">
+                  <div class="connector-dot"></div>
+                  <div class="connector-path"></div>
+                  <div class="connector-dot"></div>
+                </div>
+              }
+
+              <div class="stage-header" (click)="toggleStage(stage)">
+                <!-- Price Level Bar -->
+                <div class="price-level-bar" [class]="getPriceLevel(stage)"></div>
+
+                <!-- Checkbox -->
+                <div class="stage-checkbox" (click)="toggleSelection(stage, $event)">
+                  <div class="checkbox" [class.checked]="stage.selected">
+                    @if (stage.selected) {
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    }
+                  </div>
+                </div>
+
+                <!-- Icon -->
+                <div class="stage-icon">{{ getCategoryIcon(stage.category) }}</div>
+
+                <!-- Info -->
+                <div class="stage-info">
+                  <h3>{{ stage.name }}</h3>
+                  <div class="stage-meta">
+                    <span class="category-badge">{{ getCategoryLabel(stage.category) }}</span>
+                    <span class="stage-qty">{{ stage.quantity }} {{ stage.unit }}</span>
+                  </div>
+                </div>
+
+                <!-- Price & Suppliers -->
+                <div class="stage-right">
+                  <div class="stage-price">
+                    {{ formatCurrency(stage.priceEstimateMin) }} — {{ formatCurrency(stage.priceEstimateMax) }}
+                  </div>
+                  <div class="supplier-count">
+                    <span class="supplier-badge">
+                      Leitud {{ stage.supplierCount }} tegijat
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"/>
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Expand Arrow -->
+                <div class="expand-arrow" [class.expanded]="stage.expanded">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Expanded Content -->
+              @if (stage.expanded) {
+                <div class="stage-details">
+                  <div class="detail-section">
+                    <label>Kirjeldus</label>
+                    <p>{{ stage.description }}</p>
+                  </div>
+
+                  <div class="detail-section">
+                    <label>Turuhind</label>
+                    <div class="price-bar-wrapper">
+                      <div class="price-bar">
+                        <div class="price-fill"></div>
+                        <div class="price-median" [style.left.%]="getMedianPosition(stage)">
+                          <div class="median-marker"></div>
+                          <span class="median-label">{{ formatCurrency(stage.priceEstimateMedian) }}</span>
+                        </div>
+                      </div>
+                      <div class="price-labels">
+                        <span>{{ formatCurrency(stage.priceEstimateMin) }}</span>
+                        <span>{{ formatCurrency(stage.priceEstimateMax) }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  @if (stage.dependencies && stage.dependencies.length > 0) {
+                    <div class="detail-section">
+                      <label>Sõltuvused</label>
+                      <div class="dependencies">
+                        @for (dep of stage.dependencies; track dep) {
+                          <span class="dep-badge">{{ dep }}</span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- RFQ Success -->
+        @if (rfqSent()) {
+          <div class="rfq-success glass-card">
+            <div class="success-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+            </div>
+            <h2>Hinnapäringud saadetud!</h2>
+            <p>Saatsime hinnapäringud <strong>{{ rfqSentCount() }}</strong> ettevõttele.</p>
+            <p class="success-note">Teavitame sind, kui pakkumised saabuvad.</p>
+            <button class="cta-button" (click)="resetForm()">Alusta uut projekti</button>
+          </div>
+        }
+
+        <!-- Summary Card -->
+        @if (!rfqSent()) {
+          <div class="summary-card glass-card">
+            <div class="summary-content">
+              <div class="summary-left">
+                <div class="summary-label">Projekti maksumus</div>
+                <div class="summary-price">
+                  {{ formatCurrency(animatedTotalMin()) }} — {{ formatCurrency(animatedTotalMax()) }}
+                </div>
+                <div class="summary-median">
+                  Mediaanhind: {{ formatCurrency(selectedTotalMedian()) }}
+                </div>
+              </div>
+              <div class="summary-divider"></div>
+              <div class="summary-right">
+                <div class="summary-stat">
+                  <div class="stat-number">{{ animatedSupplierCount() }}</div>
+                  <div class="stat-label">tegijat leitud</div>
+                </div>
+                <div class="summary-stat">
+                  <div class="stat-number">{{ selectedStages().length }}</div>
+                  <div class="stat-label">etappi valitud</div>
+                </div>
+              </div>
+            </div>
+
+            @if (error()) {
+              <div class="error-message">{{ error() }}</div>
+            }
+
+            <button
+              class="cta-button full-width"
+              [class.loading]="isSendingRfq()"
+              (click)="sendRfq()"
+              [disabled]="selectedStages().length === 0 || isSendingRfq()"
+            >
+              @if (isSendingRfq()) {
+                <div class="loading-content">
+                  <div class="spinner"></div>
+                  <span>Saadan hinnapäringuid...</span>
+                </div>
+              } @else {
+                <span>Saada hinnapäring kõigile {{ animatedSupplierCount() }} tegijale</span>
+                <span class="rocket">🚀</span>
+              }
+            </button>
+          </div>
+        }
+      </div>
+    </section>
+  }
+</div>
