@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,12 +29,31 @@ public class SupplierSearchService {
     private final GooglePlacesService googlePlacesService;
     private final GooglePlacesCacheRepository cacheRepository;
     private final SupplierRepository supplierRepository;
+    private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // In-memory cache of supplier counts (refreshed every 5 minutes)
     private volatile Map<String, Integer> categoryCountCache = new ConcurrentHashMap<>();
     private volatile Map<String, Integer> cityCountCache = new ConcurrentHashMap<>();
     private volatile long totalSupplierCount = 0;
+    private volatile long crawlerCompanyCount = 0;
+
+    // EMTAK code mappings to our categories
+    // 41xxx = Buildings, 42xxx = Civil engineering, 43xxx = Specialized construction
+    private static final Map<String, List<String>> CATEGORY_TO_EMTAK = Map.ofEntries(
+        Map.entry("GENERAL_CONSTRUCTION", List.of("41", "411", "4110", "412", "4120")),
+        Map.entry("ELECTRICAL", List.of("4321", "43210")),
+        Map.entry("PLUMBING", List.of("4322", "43221", "43222")),
+        Map.entry("TILING", List.of("4333", "43330")),
+        Map.entry("FINISHING", List.of("4334", "43341", "43342", "4339", "43391")),
+        Map.entry("ROOFING", List.of("4391", "43910")),
+        Map.entry("FACADE", List.of("4399", "43991")),
+        Map.entry("LANDSCAPING", List.of("4333", "43331")),
+        Map.entry("WINDOWS_DOORS", List.of("4332", "43320")),
+        Map.entry("HVAC", List.of("4322", "43221", "43222", "43223")),
+        Map.entry("FLOORING", List.of("4333", "43332", "43339")),
+        Map.entry("DEMOLITION", List.of("4311", "43110"))
+    );
 
     // Cache validity: 7 days
     private static final int CACHE_DAYS = 7;
@@ -57,12 +77,11 @@ public class SupplierSearchService {
         try {
             long start = System.currentTimeMillis();
 
-            // Load category counts
+            // Load category counts from suppliers_unified
             Map<String, Integer> newCategoryCache = new ConcurrentHashMap<>();
             for (Object[] row : supplierRepository.countAllByCategory()) {
                 String categories = (String) row[0];
                 int count = ((Number) row[1]).intValue();
-                // Parse comma-separated categories
                 if (categories != null) {
                     for (String cat : categories.split(",")) {
                         cat = cat.trim();
@@ -70,9 +89,16 @@ public class SupplierSearchService {
                     }
                 }
             }
+
+            // Add counts from crawler.company by EMTAK codes
+            for (Map.Entry<String, List<String>> entry : CATEGORY_TO_EMTAK.entrySet()) {
+                String category = entry.getKey();
+                int emtakCount = countCrawlerCompaniesByEmtak(entry.getValue());
+                newCategoryCache.merge(category, emtakCount, Integer::sum);
+            }
             categoryCountCache = newCategoryCache;
 
-            // Load city counts
+            // Load city counts from suppliers_unified
             Map<String, Integer> newCityCache = new ConcurrentHashMap<>();
             for (Object[] row : supplierRepository.countAllByCity()) {
                 String city = (String) row[0];
@@ -81,17 +107,56 @@ public class SupplierSearchService {
                     newCityCache.put(city.toUpperCase(), count);
                 }
             }
+
+            // Add city counts from crawler.company
+            try {
+                List<Map<String, Object>> crawlerCities = jdbcTemplate.queryForList(
+                    "SELECT city, COUNT(*) as cnt FROM crawler.company WHERE city IS NOT NULL GROUP BY city");
+                for (Map<String, Object> row : crawlerCities) {
+                    String city = (String) row.get("city");
+                    int count = ((Number) row.get("cnt")).intValue();
+                    if (city != null) {
+                        newCityCache.merge(city.toUpperCase(), count, Integer::sum);
+                    }
+                }
+            } catch (Exception e) {
+                log.debug("Could not query crawler.company cities: {}", e.getMessage());
+            }
             cityCountCache = newCityCache;
 
-            // Total count
+            // Total counts
             totalSupplierCount = supplierRepository.countAll();
+            try {
+                crawlerCompanyCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM crawler.company", Long.class);
+            } catch (Exception e) {
+                crawlerCompanyCount = 0;
+            }
 
             long duration = System.currentTimeMillis() - start;
-            log.info("Supplier count cache refreshed in {}ms: {} categories, {} cities, {} total",
-                duration, categoryCountCache.size(), cityCountCache.size(), totalSupplierCount);
+            log.info("Supplier count cache refreshed in {}ms: {} categories, {} cities, {} suppliers + {} crawler companies",
+                duration, categoryCountCache.size(), cityCountCache.size(), totalSupplierCount, crawlerCompanyCount);
 
         } catch (Exception e) {
             log.warn("Failed to refresh count cache: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Count crawler companies matching EMTAK codes.
+     */
+    private int countCrawlerCompaniesByEmtak(List<String> emtakPrefixes) {
+        try {
+            StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM crawler.company WHERE ");
+            List<String> conditions = new ArrayList<>();
+            for (String prefix : emtakPrefixes) {
+                conditions.add("EXISTS (SELECT 1 FROM unnest(emtak_codes) ec WHERE ec LIKE '" + prefix + "%')");
+            }
+            sql.append(String.join(" OR ", conditions));
+            Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class);
+            return count != null ? count.intValue() : 0;
+        } catch (Exception e) {
+            return 0;
         }
     }
 
@@ -305,7 +370,14 @@ public class SupplierSearchService {
      * Get total supplier count (instant from cache).
      */
     public long getTotalSupplierCount() {
-        return totalSupplierCount;
+        return totalSupplierCount + crawlerCompanyCount;
+    }
+
+    /**
+     * Get crawler company count only.
+     */
+    public long getCrawlerCompanyCount() {
+        return crawlerCompanyCount;
     }
 
     /**
