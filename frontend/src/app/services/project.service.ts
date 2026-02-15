@@ -126,7 +126,7 @@ export class ProjectService {
           processingSteps
         });
 
-        // Simulate processing steps progress
+        // Animate processing steps (fast animation, actual work happens in backend)
         let stepIndex = 1;
         const stepInterval = setInterval(() => {
           if (stepIndex < processingSteps.length - 1) {
@@ -145,7 +145,7 @@ export class ProjectService {
               processingSteps
             });
           }
-        }, 2000);
+        }, 400); // Fast animation - 400ms per step
 
         // Store interval to clear later
         (xhr as any)._stepInterval = stepInterval;
