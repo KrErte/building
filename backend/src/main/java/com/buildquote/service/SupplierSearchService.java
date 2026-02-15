@@ -6,8 +6,10 @@ import com.buildquote.repository.GooglePlacesCacheRepository;
 import com.buildquote.repository.SupplierRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -28,11 +30,70 @@ public class SupplierSearchService {
     private final SupplierRepository supplierRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    // In-memory cache of supplier counts (refreshed every 5 minutes)
+    private volatile Map<String, Integer> categoryCountCache = new ConcurrentHashMap<>();
+    private volatile Map<String, Integer> cityCountCache = new ConcurrentHashMap<>();
+    private volatile long totalSupplierCount = 0;
+
     // Cache validity: 7 days
     private static final int CACHE_DAYS = 7;
 
     // Thread pool for parallel searches
     private final ExecutorService searchExecutor = Executors.newFixedThreadPool(6);
+
+    /**
+     * Initialize supplier count cache at startup.
+     */
+    @PostConstruct
+    public void initCountCache() {
+        refreshCountCache();
+    }
+
+    /**
+     * Refresh count cache every 5 minutes.
+     */
+    @Scheduled(fixedRate = 300000) // 5 minutes
+    public void refreshCountCache() {
+        try {
+            long start = System.currentTimeMillis();
+
+            // Load category counts
+            Map<String, Integer> newCategoryCache = new ConcurrentHashMap<>();
+            for (Object[] row : supplierRepository.countAllByCategory()) {
+                String categories = (String) row[0];
+                int count = ((Number) row[1]).intValue();
+                // Parse comma-separated categories
+                if (categories != null) {
+                    for (String cat : categories.split(",")) {
+                        cat = cat.trim();
+                        newCategoryCache.merge(cat, count, Integer::sum);
+                    }
+                }
+            }
+            categoryCountCache = newCategoryCache;
+
+            // Load city counts
+            Map<String, Integer> newCityCache = new ConcurrentHashMap<>();
+            for (Object[] row : supplierRepository.countAllByCity()) {
+                String city = (String) row[0];
+                int count = ((Number) row[1]).intValue();
+                if (city != null) {
+                    newCityCache.put(city.toUpperCase(), count);
+                }
+            }
+            cityCountCache = newCityCache;
+
+            // Total count
+            totalSupplierCount = supplierRepository.countAll();
+
+            long duration = System.currentTimeMillis() - start;
+            log.info("Supplier count cache refreshed in {}ms: {} categories, {} cities, {} total",
+                duration, categoryCountCache.size(), cityCountCache.size(), totalSupplierCount);
+
+        } catch (Exception e) {
+            log.warn("Failed to refresh count cache: {}", e.getMessage());
+        }
+    }
 
     // Search terms for each category
     private static final Map<String, String> SEARCH_TERMS = new LinkedHashMap<>();
@@ -211,30 +272,40 @@ public class SupplierSearchService {
 
     /**
      * Get count of suppliers for a category/location.
-     * First checks database, then falls back to cached Google Places results.
+     * Uses in-memory cache for instant response (no DB queries).
      */
     public int getSupplierCount(String category, String location) {
-        // First check database for existing suppliers
-        int dbCount = supplierRepository.countByCategoryAndCity(category, location);
-        if (dbCount > 0) {
-            return dbCount;
+        // Use in-memory cache (instant lookup)
+        int categoryCount = categoryCountCache.getOrDefault(category, 0);
+
+        if (categoryCount > 0) {
+            // If we have city data, estimate based on city distribution
+            int cityCount = cityCountCache.getOrDefault(location.toUpperCase(), 0);
+            if (cityCount > 0 && totalSupplierCount > 0) {
+                // Rough estimate: category suppliers in this city
+                double cityRatio = (double) cityCount / totalSupplierCount;
+                int estimated = (int) Math.max(categoryCount * cityRatio, 5);
+                return Math.min(estimated, categoryCount);
+            }
+            return categoryCount;
         }
 
-        // Fallback to category-wide count
-        dbCount = supplierRepository.countByCategory(category);
-        if (dbCount > 0) {
-            return dbCount;
-        }
-
-        // Check cache for Google Places results
+        // Fallback: check Google Places cache
         LocalDateTime cacheMinDate = LocalDateTime.now().minusDays(CACHE_DAYS);
         Optional<GooglePlacesCache> cached = cacheRepository.findValidCache(category, location, cacheMinDate);
         if (cached.isPresent()) {
             return cached.get().getResultCount();
         }
 
-        // No data available
-        return 0;
+        // Default minimum
+        return 10;
+    }
+
+    /**
+     * Get total supplier count (instant from cache).
+     */
+    public long getTotalSupplierCount() {
+        return totalSupplierCount;
     }
 
     /**

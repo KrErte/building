@@ -34,6 +34,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -53,6 +56,7 @@ public class ProjectParserService {
     private final SupplierRepository supplierRepository;
     private final SupplierSearchService supplierSearchService;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ExecutorService enrichmentExecutor = Executors.newFixedThreadPool(8);
 
     private static final String VISION_PROMPT = """
         You are a construction project analyzer specializing in reading construction drawings and plans.
@@ -143,6 +147,7 @@ public class ProjectParserService {
             JsonNode stagesNode = root.path("stages");
 
             if (stagesNode.isArray()) {
+                // First pass: create all stages
                 for (JsonNode stageNode : stagesNode) {
                     ProjectStageDto stage = new ProjectStageDto();
                     stage.setName(stageNode.path("name").asText());
@@ -159,14 +164,27 @@ public class ProjectParserService {
                         }
                     }
                     stage.setDependencies(deps);
-
-                    // Enrich with market prices
-                    enrichWithMarketPrices(stage, result.getLocation());
-
-                    // Enrich with supplier count
-                    enrichWithSupplierCount(stage, result.getLocation());
-
                     stages.add(stage);
+                }
+
+                // Second pass: enrich all stages IN PARALLEL
+                String location = result.getLocation();
+                List<CompletableFuture<Void>> enrichmentFutures = new ArrayList<>();
+
+                for (ProjectStageDto stage : stages) {
+                    CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                        enrichWithMarketPrices(stage, location);
+                        enrichWithSupplierCount(stage, location);
+                    }, enrichmentExecutor);
+                    enrichmentFutures.add(future);
+                }
+
+                // Wait for all enrichments to complete (max 5 seconds)
+                try {
+                    CompletableFuture.allOf(enrichmentFutures.toArray(new CompletableFuture[0]))
+                        .get(5, TimeUnit.SECONDS);
+                } catch (Exception e) {
+                    log.warn("Parallel enrichment timeout, some stages may have default values");
                 }
             }
 
