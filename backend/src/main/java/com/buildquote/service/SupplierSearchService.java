@@ -90,11 +90,14 @@ public class SupplierSearchService {
                 }
             }
 
-            // Add counts from crawler.company by EMTAK codes
-            for (Map.Entry<String, List<String>> entry : CATEGORY_TO_EMTAK.entrySet()) {
-                String category = entry.getKey();
-                int emtakCount = countCrawlerCompaniesByEmtak(entry.getValue());
-                newCategoryCache.merge(category, emtakCount, Integer::sum);
+            // Add counts from crawler.company by EMTAK codes (single optimized query)
+            try {
+                Map<String, Integer> emtakCounts = countAllCrawlerCompaniesByEmtak();
+                for (Map.Entry<String, Integer> entry : emtakCounts.entrySet()) {
+                    newCategoryCache.merge(entry.getKey(), entry.getValue(), Integer::sum);
+                }
+            } catch (Exception e) {
+                log.debug("Could not query crawler.company EMTAK counts: {}", e.getMessage());
             }
             categoryCountCache = newCategoryCache;
 
@@ -143,21 +146,50 @@ public class SupplierSearchService {
     }
 
     /**
-     * Count crawler companies matching EMTAK codes.
+     * Count all crawler companies by EMTAK prefix in a single efficient query.
+     * Uses EMTAK code prefixes: 41=buildings, 42=civil, 43=specialized
      */
-    private int countCrawlerCompaniesByEmtak(List<String> emtakPrefixes) {
+    private Map<String, Integer> countAllCrawlerCompaniesByEmtak() {
+        Map<String, Integer> counts = new HashMap<>();
+
+        // Single query to count by first 2 digits of EMTAK codes
+        String sql = """
+            SELECT
+                CASE
+                    WHEN ec LIKE '411%' OR ec LIKE '412%' THEN 'GENERAL_CONSTRUCTION'
+                    WHEN ec LIKE '4321%' THEN 'ELECTRICAL'
+                    WHEN ec LIKE '4322%' THEN 'PLUMBING'
+                    WHEN ec LIKE '4333%' THEN 'TILING'
+                    WHEN ec LIKE '4334%' OR ec LIKE '4339%' THEN 'FINISHING'
+                    WHEN ec LIKE '4391%' THEN 'ROOFING'
+                    WHEN ec LIKE '4399%' THEN 'FACADE'
+                    WHEN ec LIKE '43331%' THEN 'LANDSCAPING'
+                    WHEN ec LIKE '4332%' THEN 'WINDOWS_DOORS'
+                    WHEN ec LIKE '43221%' OR ec LIKE '43222%' OR ec LIKE '43223%' THEN 'HVAC'
+                    WHEN ec LIKE '43332%' OR ec LIKE '43339%' THEN 'FLOORING'
+                    WHEN ec LIKE '4311%' THEN 'DEMOLITION'
+                    ELSE NULL
+                END as category,
+                COUNT(DISTINCT c.id) as cnt
+            FROM crawler.company c, unnest(c.emtak_codes) ec
+            GROUP BY 1
+            HAVING COUNT(DISTINCT c.id) > 0
+            """;
+
         try {
-            StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM crawler.company WHERE ");
-            List<String> conditions = new ArrayList<>();
-            for (String prefix : emtakPrefixes) {
-                conditions.add("EXISTS (SELECT 1 FROM unnest(emtak_codes) ec WHERE ec LIKE '" + prefix + "%')");
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
+            for (Map<String, Object> row : rows) {
+                String category = (String) row.get("category");
+                if (category != null) {
+                    int count = ((Number) row.get("cnt")).intValue();
+                    counts.merge(category, count, Integer::sum);
+                }
             }
-            sql.append(String.join(" OR ", conditions));
-            Long count = jdbcTemplate.queryForObject(sql.toString(), Long.class);
-            return count != null ? count.intValue() : 0;
         } catch (Exception e) {
-            return 0;
+            log.debug("EMTAK count query failed: {}", e.getMessage());
         }
+
+        return counts;
     }
 
     // Search terms for each category

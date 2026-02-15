@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,6 +70,7 @@ public class BatchHarvestService {
 
     private final GooglePlacesService googlePlacesService;
     private final SupplierRepository supplierRepository;
+    private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ExecutorService parallelExecutor = Executors.newFixedThreadPool(6);
 
@@ -90,9 +92,10 @@ public class BatchHarvestService {
     private LocalDateTime startedAt = null;
     private LocalDateTime completedAt = null;
 
-    public BatchHarvestService(GooglePlacesService googlePlacesService, SupplierRepository supplierRepository) {
+    public BatchHarvestService(GooglePlacesService googlePlacesService, SupplierRepository supplierRepository, JdbcTemplate jdbcTemplate) {
         this.googlePlacesService = googlePlacesService;
         this.supplierRepository = supplierRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     public Map<String, Object> getStatus() {
@@ -119,8 +122,20 @@ public class BatchHarvestService {
         Map<String, Object> stats = new HashMap<>();
 
         List<Supplier> allSuppliers = supplierRepository.findAll();
-        long total = allSuppliers.size();
+        long supplierCount = allSuppliers.size();
+
+        // Include crawler.company count (31,000+ Estonian construction companies)
+        long crawlerCount = 0;
+        try {
+            crawlerCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM crawler.company", Long.class);
+        } catch (Exception e) {
+            // crawler schema may not exist
+        }
+
+        long total = supplierCount + crawlerCount;
         stats.put("totalCompanies", total);
+        stats.put("suppliersUnified", supplierCount);
+        stats.put("crawlerCompanies", crawlerCount);
 
         // Count with email
         long withEmail = allSuppliers.stream()
