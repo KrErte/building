@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ProjectService, UploadProgress, ProcessingStep } from '../../services/project.service';
 import { RfqService } from '../../services/rfq.service';
 import { CompanyService } from '../../services/company.service';
+import { Company } from '../../models/company.model';
 import {
   ProjectParseResult,
   ProjectStage,
@@ -12,6 +13,18 @@ import {
 } from '../../models/project.model';
 import { RfqRequest } from '../../models/rfq.model';
 import { PriceBreakdownComponent } from '../../components/price-breakdown/price-breakdown.component';
+import { forkJoin } from 'rxjs';
+
+// Preview interfaces
+interface PreviewCompany extends Company {
+  selected: boolean;
+}
+
+interface CategoryCompanies {
+  category: string;
+  companies: PreviewCompany[];
+  loading: boolean;
+}
 
 @Component({
   selector: 'app-project-new',
@@ -134,6 +147,16 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
   isSendingRfq = signal(false);
   rfqSent = signal(false);
   rfqSentCount = signal(0);
+
+  // Preview step
+  showPreview = signal(false);
+  previewCompanies = signal<CategoryCompanies[]>([]);
+  loadingCompanies = signal(false);
+  showAddCompanyModal = signal(false);
+  addCompanyCategory = signal('');
+  manualCompanyName = signal('');
+  manualCompanyEmail = signal('');
+  manualCompanyPhone = signal('');
 
   private intervals: number[] = [];
 
@@ -649,5 +672,222 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     this.animatedTotalMin.set(0);
     this.animatedTotalMax.set(0);
     this.animatedSupplierCount.set(0);
+    this.showPreview.set(false);
+    this.previewCompanies.set([]);
+  }
+
+  // Preview step methods
+  openPreview(): void {
+    const selected = this.selectedStages();
+    if (selected.length === 0) {
+      this.error.set('Palun vali vähemalt üks etapp');
+      return;
+    }
+
+    this.showPreview.set(true);
+    this.loadCompaniesForCategories();
+  }
+
+  closePreview(): void {
+    this.showPreview.set(false);
+  }
+
+  private loadCompaniesForCategories(): void {
+    const selected = this.selectedStages();
+    const categories = [...new Set(selected.map(s => s.category))];
+    const result = this.result();
+    const location = result?.location || '';
+
+    this.loadingCompanies.set(true);
+
+    // Initialize with loading state
+    this.previewCompanies.set(categories.map(cat => ({
+      category: cat,
+      companies: [],
+      loading: true
+    })));
+
+    // Fetch companies for each category
+    const requests = categories.map(cat =>
+      this.companyService.getCompaniesByCategory(cat, location, 10)
+    );
+
+    forkJoin(requests).subscribe({
+      next: (responses) => {
+        const categoriesWithCompanies = categories.map((cat, idx) => ({
+          category: cat,
+          companies: responses[idx].companies.map(c => ({ ...c, selected: true })),
+          loading: false
+        }));
+        this.previewCompanies.set(categoriesWithCompanies);
+        this.loadingCompanies.set(false);
+      },
+      error: (err) => {
+        console.error('Error loading companies:', err);
+        this.loadingCompanies.set(false);
+      }
+    });
+  }
+
+  updateQuantity(stage: ProjectStage, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const value = parseFloat(input.value);
+    if (!isNaN(value) && value > 0) {
+      stage.quantity = value;
+    }
+  }
+
+  toggleCompanySelection(categoryIndex: number, companyIndex: number): void {
+    const categories = this.previewCompanies();
+    const company = categories[categoryIndex]?.companies[companyIndex];
+    if (company) {
+      company.selected = !company.selected;
+      this.previewCompanies.set([...categories]);
+    }
+  }
+
+  selectAllCompanies(categoryIndex: number): void {
+    const categories = this.previewCompanies();
+    categories[categoryIndex]?.companies.forEach(c => c.selected = true);
+    this.previewCompanies.set([...categories]);
+  }
+
+  deselectAllCompanies(categoryIndex: number): void {
+    const categories = this.previewCompanies();
+    categories[categoryIndex]?.companies.forEach(c => c.selected = false);
+    this.previewCompanies.set([...categories]);
+  }
+
+  openAddCompanyModal(category: string): void {
+    this.addCompanyCategory.set(category);
+    this.manualCompanyName.set('');
+    this.manualCompanyEmail.set('');
+    this.manualCompanyPhone.set('');
+    this.showAddCompanyModal.set(true);
+  }
+
+  closeAddCompanyModal(): void {
+    this.showAddCompanyModal.set(false);
+  }
+
+  addManualCompany(): void {
+    const name = this.manualCompanyName();
+    const email = this.manualCompanyEmail();
+    const phone = this.manualCompanyPhone();
+    const category = this.addCompanyCategory();
+
+    if (!name.trim()) {
+      return;
+    }
+
+    const newCompany: PreviewCompany = {
+      id: 'manual-' + Date.now(),
+      companyName: name,
+      contactPerson: null,
+      email: email || null,
+      phone: phone || null,
+      website: null,
+      address: null,
+      city: null,
+      county: null,
+      categories: [category],
+      serviceAreas: [],
+      source: 'MANUAL',
+      googleRating: null,
+      googleReviewCount: null,
+      trustScore: null,
+      isVerified: false,
+      selected: true
+    };
+
+    const categories = this.previewCompanies();
+    const catIndex = categories.findIndex(c => c.category === category);
+    if (catIndex >= 0) {
+      categories[catIndex].companies.push(newCompany);
+      this.previewCompanies.set([...categories]);
+    }
+
+    this.closeAddCompanyModal();
+  }
+
+  getSelectedCompanyCount(categoryIndex: number): number {
+    const categories = this.previewCompanies();
+    return categories[categoryIndex]?.companies.filter(c => c.selected).length || 0;
+  }
+
+  getTotalSelectedCompanyCount(): number {
+    return this.previewCompanies().reduce(
+      (sum, cat) => sum + cat.companies.filter(c => c.selected).length,
+      0
+    );
+  }
+
+  confirmAndSendRfq(): void {
+    const selected = this.selectedStages();
+    if (selected.length === 0) {
+      this.error.set('Palun vali vähemalt üks etapp');
+      return;
+    }
+
+    const totalCompanies = this.getTotalSelectedCompanyCount();
+    if (totalCompanies === 0) {
+      this.error.set('Palun vali vähemalt üks ettevõte');
+      return;
+    }
+
+    this.error.set(null);
+    this.isSendingRfq.set(true);
+    this.showPreview.set(false);
+
+    const result = this.result();
+    if (!result) return;
+
+    let sentCount = 0;
+    let completed = 0;
+    const categories = this.previewCompanies();
+
+    selected.forEach(stage => {
+      const catCompanies = categories.find(c => c.category === stage.category);
+      const selectedCompanyIds = catCompanies?.companies
+        .filter(c => c.selected)
+        .map(c => c.id) || [];
+
+      const request: RfqRequest = {
+        title: `${stage.name} - ${result.projectTitle}`,
+        category: stage.category,
+        location: result.location,
+        quantity: stage.quantity,
+        unit: stage.unit,
+        specifications: stage.description,
+        maxBudget: stage.priceEstimateMax,
+        deadline: null,
+        supplierIds: selectedCompanyIds
+      };
+
+      this.rfqService.sendRfq(request).subscribe({
+        next: (campaign) => {
+          sentCount += selectedCompanyIds.length;
+          completed++;
+          if (completed === selected.length) {
+            this.isSendingRfq.set(false);
+            this.rfqSent.set(true);
+            this.rfqSentCount.set(sentCount);
+          }
+        },
+        error: (err) => {
+          console.error('Error sending RFQ:', err);
+          completed++;
+          if (completed === selected.length) {
+            this.isSendingRfq.set(false);
+            if (sentCount > 0) {
+              this.rfqSent.set(true);
+              this.rfqSentCount.set(sentCount);
+            } else {
+              this.error.set('Hinnapäringute saatmine ebaõnnestus');
+            }
+          }
+        }
+      });
+    });
   }
 }
