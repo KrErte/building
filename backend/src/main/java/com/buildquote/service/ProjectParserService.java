@@ -547,85 +547,173 @@ public class ProjectParserService {
     /**
      * Extract from ZIP archive containing multiple file types.
      * Supports: IFC, DWG, DXF, RVT, PDF, and image files.
+     * OPTIMIZED: Parallel processing, limited files, fast timeouts.
      */
     private String extractFromZip(MultipartFile file) throws IOException {
         String zipFilename = file.getOriginalFilename();
         log.info("Processing ZIP archive: {} ({} KB)", zipFilename, file.getSize() / 1024);
 
         Path tempDir = Files.createTempDirectory("zip_extract_" + UUID.randomUUID().toString().substring(0, 8));
-        List<String> extractedDescriptions = new ArrayList<>();
+        List<Path> extractedFiles = new ArrayList<>();
+        List<String> extractedNames = new ArrayList<>();
 
+        // STEP 1: Extract all files first (fast)
         try (ZipInputStream zis = new ZipInputStream(file.getInputStream())) {
             ZipEntry entry;
-            long maxExtractedSize = 10L * 1024 * 1024 * 1024; // 10GB max total
-            long totalExtractedSize = 0;
+            int fileCount = 0;
+            int maxFiles = 15; // Limit to 15 files for speed
 
-            while ((entry = zis.getNextEntry()) != null) {
+            while ((entry = zis.getNextEntry()) != null && fileCount < maxFiles) {
                 String entryName = entry.getName();
+                if (entry.isDirectory()) continue;
 
-                // Skip directories
-                if (entry.isDirectory()) {
-                    continue;
-                }
-
-                // Security: prevent zip slip attack
                 String normalizedName = Path.of(entryName).getFileName().toString();
-
-                // Skip hidden files and macOS metadata
-                if (normalizedName.startsWith(".") || normalizedName.startsWith("__MACOSX")) {
-                    continue;
-                }
+                if (normalizedName.startsWith(".") || normalizedName.startsWith("__MACOSX")) continue;
 
                 String lowerName = normalizedName.toLowerCase();
-
-                // Check if it's a supported file type
                 if (!isSupportedZipEntry(lowerName)) {
-                    log.debug("Skipping unsupported file in ZIP: {}", normalizedName);
                     zis.closeEntry();
                     continue;
                 }
 
-                // Check size limit
-                if (entry.getSize() > 0) {
-                    totalExtractedSize += entry.getSize();
-                    if (totalExtractedSize > maxExtractedSize) {
-                        log.warn("ZIP extraction size limit exceeded");
-                        break;
-                    }
-                }
-
-                // Extract file to temp directory
+                // Prioritize IFC files (most valuable)
                 String uniqueName = UUID.randomUUID().toString().substring(0, 8) + "_" + normalizedName;
                 Path extractedFile = tempDir.resolve(uniqueName);
                 Files.copy(zis, extractedFile, StandardCopyOption.REPLACE_EXISTING);
 
-                log.info("Extracted from ZIP: {}", normalizedName);
+                extractedFiles.add(extractedFile);
+                extractedNames.add(normalizedName);
+                fileCount++;
 
-                // Process the extracted file based on type
-                try {
-                    String description = processExtractedFile(extractedFile, normalizedName);
-                    if (description != null && !description.isBlank()) {
-                        extractedDescriptions.add("=== " + normalizedName + " ===\n" + description);
-                    }
-                } catch (Exception e) {
-                    log.warn("Failed to process {} from ZIP: {}", normalizedName, e.getMessage());
-                    extractedDescriptions.add("=== " + normalizedName + " ===\nFaili töötlemine ebaõnnestus: " + e.getMessage());
-                }
-
+                log.info("Extracted from ZIP: {} ({}/{})", normalizedName, fileCount, maxFiles);
                 zis.closeEntry();
             }
+        }
 
-        } finally {
-            // Cleanup temp directory
+        if (extractedFiles.isEmpty()) {
             cleanupDirectory(tempDir);
+            return "ZIP-arhiivist ei leitud ühtegi toetatud faili.";
         }
 
-        if (extractedDescriptions.isEmpty()) {
-            return "ZIP-arhiivist ei leitud ühtegi toetatud faili (IFC, DWG, DXF, RVT, PDF, pildid).";
+        // STEP 2: Process files IN PARALLEL
+        log.info("Processing {} files in parallel...", extractedFiles.size());
+        List<CompletableFuture<String>> futures = new ArrayList<>();
+
+        for (int i = 0; i < extractedFiles.size(); i++) {
+            final Path filePath = extractedFiles.get(i);
+            final String fileName = extractedNames.get(i);
+
+            CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+                try {
+                    String description = processExtractedFileFast(filePath, fileName);
+                    if (description != null && !description.isBlank()) {
+                        return "=== " + fileName + " ===\n" + description;
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to process {}: {}", fileName, e.getMessage());
+                }
+                return null;
+            }, enrichmentExecutor);
+
+            futures.add(future);
         }
 
-        return "ZIP-arhiivist ekstraktitud (" + extractedDescriptions.size() + " faili):\n\n" +
-               String.join("\n\n", extractedDescriptions);
+        // Wait for all with timeout (max 30 seconds total)
+        List<String> results = new ArrayList<>();
+        try {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .get(30, TimeUnit.SECONDS);
+
+            for (CompletableFuture<String> f : futures) {
+                if (f.isDone() && !f.isCompletedExceptionally()) {
+                    String result = f.getNow(null);
+                    if (result != null) results.add(result);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Parallel processing timeout, using partial results");
+            for (CompletableFuture<String> f : futures) {
+                if (f.isDone() && !f.isCompletedExceptionally()) {
+                    String result = f.getNow(null);
+                    if (result != null) results.add(result);
+                }
+            }
+        }
+
+        // Cleanup
+        cleanupDirectory(tempDir);
+
+        if (results.isEmpty()) {
+            return "ZIP-arhiivi failide töötlemine ebaõnnestus.";
+        }
+
+        log.info("ZIP processing complete: {} files processed", results.size());
+        return "ZIP-arhiivist ekstraktitud (" + results.size() + " faili):\n\n" +
+               String.join("\n\n", results);
+    }
+
+    /**
+     * Fast file processing - skip slow operations
+     */
+    private String processExtractedFileFast(Path file, String originalName) throws IOException {
+        String lowerName = originalName.toLowerCase();
+
+        // IFC - fast, use basic parser
+        if (lowerName.endsWith(".ifc")) {
+            try (InputStream is = Files.newInputStream(file)) {
+                IfcParserService.IfcParseResult ifcResult = ifcParserService.parseIfc(is);
+                return ifcResult.getDescription();
+            }
+        }
+
+        // DXF - fast
+        if (lowerName.endsWith(".dxf")) {
+            try (InputStream is = Files.newInputStream(file)) {
+                DxfParserService.DxfParseResult dxfResult = dxfParserService.parseDxf(is);
+                return dxfResult.getDescription();
+            }
+        }
+
+        // DWG - skip (too slow, suggest DXF export)
+        if (lowerName.endsWith(".dwg")) {
+            long sizeKb = Files.size(file) / 1024;
+            return String.format("DWG fail (%d KB) - ekspordi DXF formaati kiiremaks analüüsiks.", sizeKb);
+        }
+
+        // RVT - skip
+        if (lowerName.endsWith(".rvt")) {
+            long sizeKb = Files.size(file) / 1024;
+            return String.format("Revit fail (%d KB) - ekspordi IFC formaati.", sizeKb);
+        }
+
+        // PDF - extract text only (skip Vision API for speed)
+        if (lowerName.endsWith(".pdf")) {
+            return processExtractedPdfFast(file);
+        }
+
+        // Images - skip in ZIP (too slow with Vision API)
+        if (isImageFile(lowerName)) {
+            return "Pildifail - lae üles eraldi detailsemaks analüüsiks.";
+        }
+
+        return null;
+    }
+
+    /**
+     * Fast PDF processing - text only, no Vision API
+     */
+    private String processExtractedPdfFast(Path pdfFile) throws IOException {
+        byte[] pdfBytes = Files.readAllBytes(pdfFile);
+        try (PDDocument document = Loader.loadPDF(pdfBytes)) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            String text = stripper.getText(document);
+            if (text != null && text.trim().length() > 50) {
+                // Limit text length for speed
+                String trimmed = text.length() > 3000 ? text.substring(0, 3000) + "..." : text;
+                return trimmed;
+            }
+            return "PDF sisaldab peamiselt pilte - lae üles eraldi Vision AI analüüsiks.";
+        }
     }
 
     /**

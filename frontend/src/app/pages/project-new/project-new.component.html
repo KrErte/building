@@ -345,6 +345,14 @@
                       </div>
                     </div>
                   }
+
+                  <!-- Price Breakdown -->
+                  <app-price-breakdown
+                    [category]="stage.category"
+                    [quantity]="stage.quantity"
+                    [unit]="stage.unit"
+                    [autoLoad]="true"
+                  ></app-price-breakdown>
                 </div>
               }
             </div>

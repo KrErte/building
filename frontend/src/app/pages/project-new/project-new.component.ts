@@ -11,11 +11,12 @@ import {
   CATEGORY_ICONS
 } from '../../models/project.model';
 import { RfqRequest } from '../../models/rfq.model';
+import { PriceBreakdownComponent } from '../../components/price-breakdown/price-breakdown.component';
 
 @Component({
   selector: 'app-project-new',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PriceBreakdownComponent],
   templateUrl: './project-new.component.html',
   styleUrls: ['./project-new.component.scss']
 })
