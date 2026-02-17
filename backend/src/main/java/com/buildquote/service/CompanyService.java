@@ -134,7 +134,8 @@ public class CompanyService {
                        COALESCE(email[1], '') as email,
                        COALESCE(phone[1], '') as phone,
                        website, address, city, county,
-                       'BUSINESS_REGISTRY' as source, NULL as categories
+                       'BUSINESS_REGISTRY' as source,
+                       array_to_string(categories, ',') as categories
                 FROM crawler.company
             ) combined
             %s
@@ -165,7 +166,7 @@ public class CompanyService {
             SELECT COUNT(*) FROM (
                 SELECT company_name, city, categories FROM public.suppliers
                 UNION ALL
-                SELECT legal_name as company_name, city, NULL as categories FROM crawler.company
+                SELECT legal_name as company_name, city, array_to_string(categories, ',') as categories FROM crawler.company
             ) combined
             %s
             """, whereClause);
