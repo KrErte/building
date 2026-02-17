@@ -21,13 +21,13 @@ public interface SupplierRepository extends JpaRepository<Supplier, UUID> {
 
     boolean existsByGooglePlaceId(String googlePlaceId);
 
-    @Query(value = "SELECT COUNT(*) FROM suppliers_unified WHERE categories LIKE CONCAT('%', :category, '%')", nativeQuery = true)
+    @Query(value = "SELECT COUNT(*) FROM suppliers WHERE categories LIKE CONCAT('%', :category, '%')", nativeQuery = true)
     int countByCategory(@Param("category") String category);
 
-    @Query(value = "SELECT COUNT(*) FROM suppliers_unified WHERE categories LIKE CONCAT('%', :category, '%') AND service_areas LIKE CONCAT('%', :city, '%')", nativeQuery = true)
+    @Query(value = "SELECT COUNT(*) FROM suppliers WHERE categories LIKE CONCAT('%', :category, '%') AND service_areas LIKE CONCAT('%', :city, '%')", nativeQuery = true)
     int countByCategoryAndCity(@Param("category") String category, @Param("city") String city);
 
-    @Query(value = "SELECT * FROM suppliers_unified WHERE categories LIKE CONCAT('%', :category, '%') LIMIT :limit", nativeQuery = true)
+    @Query(value = "SELECT * FROM suppliers WHERE categories LIKE CONCAT('%', :category, '%') LIMIT :limit", nativeQuery = true)
     List<Supplier> findByCategory(@Param("category") String category, @Param("limit") int limit);
 
     @Query("SELECT s FROM Supplier s WHERE " +
@@ -45,14 +45,14 @@ public interface SupplierRepository extends JpaRepository<Supplier, UUID> {
      * Batch count suppliers by multiple categories - much faster than individual queries.
      * Returns list of [category, count] arrays.
      */
-    @Query(value = "SELECT categories, COUNT(*) as cnt FROM suppliers_unified " +
+    @Query(value = "SELECT categories, COUNT(*) as cnt FROM suppliers " +
                    "WHERE categories IS NOT NULL GROUP BY categories", nativeQuery = true)
     List<Object[]> countAllByCategory();
 
     /**
      * Get total count per city for quick lookups.
      */
-    @Query(value = "SELECT city, COUNT(*) as cnt FROM suppliers_unified " +
+    @Query(value = "SELECT city, COUNT(*) as cnt FROM suppliers " +
                    "WHERE city IS NOT NULL GROUP BY city", nativeQuery = true)
     List<Object[]> countAllByCity();
 }

@@ -81,14 +81,21 @@ public class ProjectParserService {
 
     private static final String PARSE_PROMPT = """
         You are a construction project analyzer for Estonian construction projects.
-        Given a project description, extract ALL construction stages needed.
+        Given a project description, extract ALL construction work items as separate stages.
+
+        CRITICAL RULES:
+        - Keep each window, door, or material item as a SEPARATE stage (do NOT merge similar items)
+        - If document lists "Aken A1 (5tk), Aken A2 (3tk)", create TWO separate stages with their original names
+        - Preserve the original item codes/names/marks from the document (e.g., "A-1", "UK-2", "Aken W1")
+        - Each unique product/item type = separate stage
+        - Do NOT group windows together or doors together - keep them as listed in the source
 
         For each stage provide:
-        - name: Estonian name of the work (e.g., "Plaatimistööd", "Elektritööd")
+        - name: Original item name/code from document + Estonian description (e.g., "Aken A-1 paigaldus", "Uks UK-2 paigaldus")
         - category: one of [GENERAL_CONSTRUCTION, ELECTRICAL, PLUMBING, TILING, FINISHING, ROOFING, FACADE, LANDSCAPING, DEMOLITION, FLOORING, HVAC, WINDOWS_DOORS, OTHER]
-        - quantity: estimated amount as a number
+        - quantity: exact amount as stated in document
         - unit: one of [m2, tk, jm, h]
-        - description: what specifically needs to be done
+        - description: specifications from document (dimensions, materials, features)
         - dependencies: list of stage names that must be done first (empty array if none)
 
         Also extract:

@@ -77,7 +77,7 @@ public class SupplierSearchService {
         try {
             long start = System.currentTimeMillis();
 
-            // Load category counts from suppliers_unified
+            // Load category counts from suppliers
             Map<String, Integer> newCategoryCache = new ConcurrentHashMap<>();
             for (Object[] row : supplierRepository.countAllByCategory()) {
                 String categories = (String) row[0];
@@ -101,7 +101,7 @@ public class SupplierSearchService {
             }
             categoryCountCache = newCategoryCache;
 
-            // Load city counts from suppliers_unified
+            // Load city counts from suppliers
             Map<String, Integer> newCityCache = new ConcurrentHashMap<>();
             for (Object[] row : supplierRepository.countAllByCity()) {
                 String city = (String) row[0];

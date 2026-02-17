@@ -31,37 +31,37 @@ public class CompanyService {
     }
 
     public CompanyPageResponse getCompanies(int page, int size, String search, String sortBy, String sortDir) {
-        // Use combined query from both suppliers_unified and crawler.company
+        return getCompanies(page, size, search, sortBy, sortDir, null, null);
+    }
+
+    public CompanyPageResponse getCompanies(int page, int size, String search, String sortBy, String sortDir, String category, String city) {
+        // Use combined query from both suppliers and crawler.company
         String searchPattern = (search != null && !search.isBlank()) ? "%" + search.toLowerCase() + "%" : null;
+        String categoryPattern = (category != null && !category.isBlank()) ? "%" + category + "%" : null;
+        String cityPattern = (city != null && !city.isBlank()) ? "%" + city.toLowerCase() + "%" : null;
         int offset = page * size;
 
-        String sql = buildCombinedQuery(searchPattern, sortBy, sortDir, size, offset);
-        String countSql = buildCountQuery(searchPattern);
+        String sql = buildCombinedQuery(searchPattern, categoryPattern, cityPattern, sortBy, sortDir, size, offset);
+        String countSql = buildCountQuery(searchPattern, categoryPattern, cityPattern);
 
         List<CompanyDto> companies = new ArrayList<>();
         long totalElements = 0;
 
         try {
+            // Build parameters list
+            List<Object> params = buildQueryParams(searchPattern, categoryPattern, cityPattern);
+
             // Get total count
-            if (searchPattern != null) {
-                totalElements = jdbcTemplate.queryForObject(countSql, Long.class, searchPattern, searchPattern);
-            } else {
-                totalElements = jdbcTemplate.queryForObject(countSql, Long.class);
-            }
+            totalElements = jdbcTemplate.queryForObject(countSql, Long.class, params.toArray());
 
             // Get paginated results
-            List<Map<String, Object>> rows;
-            if (searchPattern != null) {
-                rows = jdbcTemplate.queryForList(sql, searchPattern, searchPattern);
-            } else {
-                rows = jdbcTemplate.queryForList(sql);
-            }
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, params.toArray());
 
             for (Map<String, Object> row : rows) {
                 companies.add(mapRowToDto(row));
             }
         } catch (Exception e) {
-            // Fallback to suppliers_unified only
+            // Fallback to suppliers only
             System.err.println("CompanyService combined query failed: " + e.getMessage());
             e.printStackTrace();
             Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
@@ -88,18 +88,47 @@ public class CompanyService {
                 .build();
     }
 
-    private String buildCombinedQuery(String searchPattern, String sortBy, String sortDir, int limit, int offset) {
+    private List<Object> buildQueryParams(String searchPattern, String categoryPattern, String cityPattern) {
+        List<Object> params = new ArrayList<>();
+        if (searchPattern != null) {
+            params.add(searchPattern);
+            params.add(searchPattern);
+        }
+        if (categoryPattern != null) {
+            params.add(categoryPattern);
+        }
+        if (cityPattern != null) {
+            params.add(cityPattern);
+        }
+        return params;
+    }
+
+    private String buildCombinedQuery(String searchPattern, String categoryPattern, String cityPattern, String sortBy, String sortDir, int limit, int offset) {
         String orderBy = mapSortFieldSql(sortBy);
         String direction = "desc".equalsIgnoreCase(sortDir) ? "DESC" : "ASC";
 
-        String searchClause = searchPattern != null ?
-            "WHERE LOWER(company_name) LIKE ? OR LOWER(city) LIKE ?" : "";
+        StringBuilder whereClause = new StringBuilder();
+        List<String> conditions = new ArrayList<>();
+
+        if (searchPattern != null) {
+            conditions.add("(LOWER(company_name) LIKE ? OR LOWER(city) LIKE ?)");
+        }
+        if (categoryPattern != null) {
+            conditions.add("categories LIKE ?");
+        }
+        if (cityPattern != null) {
+            conditions.add("LOWER(city) LIKE ?");
+        }
+
+        if (!conditions.isEmpty()) {
+            whereClause.append("WHERE ").append(String.join(" AND ", conditions));
+        }
 
         return String.format("""
             SELECT id, company_name, email, phone, website, address, city, county, source, categories
             FROM (
                 SELECT id::text, company_name, email, phone, website, address, city, county, source, categories
-                FROM public.suppliers_unified
+                FROM public.suppliers
                 UNION ALL
                 SELECT id::text, legal_name as company_name,
                        COALESCE(email[1], '') as email,
@@ -111,21 +140,35 @@ public class CompanyService {
             %s
             ORDER BY %s %s NULLS LAST
             LIMIT %d OFFSET %d
-            """, searchClause, orderBy, direction, limit, offset);
+            """, whereClause, orderBy, direction, limit, offset);
     }
 
-    private String buildCountQuery(String searchPattern) {
-        String searchClause = searchPattern != null ?
-            "WHERE LOWER(company_name) LIKE ? OR LOWER(city) LIKE ?" : "";
+    private String buildCountQuery(String searchPattern, String categoryPattern, String cityPattern) {
+        StringBuilder whereClause = new StringBuilder();
+        List<String> conditions = new ArrayList<>();
+
+        if (searchPattern != null) {
+            conditions.add("(LOWER(company_name) LIKE ? OR LOWER(city) LIKE ?)");
+        }
+        if (categoryPattern != null) {
+            conditions.add("categories LIKE ?");
+        }
+        if (cityPattern != null) {
+            conditions.add("LOWER(city) LIKE ?");
+        }
+
+        if (!conditions.isEmpty()) {
+            whereClause.append("WHERE ").append(String.join(" AND ", conditions));
+        }
 
         return String.format("""
             SELECT COUNT(*) FROM (
-                SELECT company_name, city FROM public.suppliers_unified
+                SELECT company_name, city, categories FROM public.suppliers
                 UNION ALL
-                SELECT legal_name as company_name, city FROM crawler.company
+                SELECT legal_name as company_name, city, NULL as categories FROM crawler.company
             ) combined
             %s
-            """, searchClause);
+            """, whereClause);
     }
 
     private String mapSortFieldSql(String sortBy) {
@@ -180,7 +223,7 @@ public class CompanyService {
     }
 
     public long getTotalCount() {
-        // Include both suppliers_unified and crawler.company counts
+        // Include both suppliers and crawler.company counts
         return supplierSearchService.getTotalSupplierCount();
     }
 
