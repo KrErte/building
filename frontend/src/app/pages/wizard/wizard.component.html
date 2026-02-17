@@ -1,0 +1,380 @@
+<div class="wizard-page">
+  <!-- Header -->
+  <header class="wizard-header">
+    <a routerLink="/" class="logo">
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">BuildQuote</span>
+    </a>
+    <div class="header-actions">
+      <span class="user-name">{{ authService.getFullName() }}</span>
+      <button class="btn-ghost" (click)="cancel()">Tühista</button>
+    </div>
+  </header>
+
+  <div class="wizard-container">
+    <!-- Stepper -->
+    <div class="stepper">
+      @for (step of steps; track step.number) {
+        <div class="step" [class.active]="currentStep() === step.number" [class.completed]="currentStep() > step.number">
+          <div class="step-number">
+            @if (currentStep() > step.number) {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            } @else {
+              {{ step.number }}
+            }
+          </div>
+          <span class="step-title">{{ step.title }}</span>
+        </div>
+        @if (step.number < steps.length) {
+          <div class="step-line" [class.completed]="currentStep() > step.number"></div>
+        }
+      }
+    </div>
+
+    <!-- Error message -->
+    @if (error()) {
+      <div class="error-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>{{ error() }}</span>
+      </div>
+    }
+
+    <!-- Step 1: Job Description -->
+    @if (currentStep() === 1) {
+      <div class="step-content">
+        <h2>Kirjelda tööd</h2>
+        <p class="step-description">Sisesta projekti detailid, et leida sobivad tarnijad</p>
+
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label for="title">Töö pealkiri *</label>
+            <input
+              type="text"
+              id="title"
+              [ngModel]="formData().title"
+              (ngModelChange)="updateFormField('title', $event)"
+              placeholder="nt. Vannitoa plaatimine"
+            />
+          </div>
+
+          <div class="form-group full-width">
+            <label for="description">Kirjeldus</label>
+            <textarea
+              id="description"
+              [ngModel]="formData().description"
+              (ngModelChange)="updateFormField('description', $event)"
+              placeholder="Kirjelda tööd detailsemalt..."
+              rows="4"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="category">Kategooria *</label>
+            <select
+              id="category"
+              [ngModel]="formData().category"
+              (ngModelChange)="updateFormField('category', $event)"
+            >
+              <option value="">Vali kategooria</option>
+              @for (cat of categories; track cat.value) {
+                <option [value]="cat.value">{{ cat.label }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="location">Asukoht *</label>
+            <select
+              id="location"
+              [ngModel]="formData().location"
+              (ngModelChange)="updateFormField('location', $event)"
+            >
+              <option value="">Vali asukoht</option>
+              @for (loc of locations; track loc.value) {
+                <option [value]="loc.value">{{ loc.label }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="area">Pindala (m²) *</label>
+            <input
+              type="number"
+              id="area"
+              [ngModel]="formData().area"
+              (ngModelChange)="updateFormField('area', $event)"
+              placeholder="nt. 25"
+              min="1"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="deadline">Tähtaeg *</label>
+            <input
+              type="date"
+              id="deadline"
+              [ngModel]="formData().deadline"
+              (ngModelChange)="updateFormField('deadline', $event)"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Eelarve vahemik (EUR)</label>
+            <div class="budget-range">
+              <input
+                type="number"
+                [ngModel]="formData().budgetMin"
+                (ngModelChange)="updateFormField('budgetMin', $event)"
+                placeholder="Min"
+                min="0"
+              />
+              <span class="range-separator">–</span>
+              <input
+                type="number"
+                [ngModel]="formData().budgetMax"
+                (ngModelChange)="updateFormField('budgetMax', $event)"
+                placeholder="Max"
+                min="0"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Market Price Estimate -->
+        @if (priceEstimate() || loadingPrice()) {
+          <div class="price-estimate-card">
+            <div class="estimate-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="1" x2="12" y2="23"/>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+              <span>Turuhinna hinnang</span>
+            </div>
+            @if (loadingPrice()) {
+              <div class="estimate-loading">
+                <span class="spinner"></span>
+                <span>Laadin hinnainfot...</span>
+              </div>
+            } @else if (priceEstimate()) {
+              <div class="estimate-content">
+                <div class="estimate-row">
+                  <span class="estimate-label">Hinnavahemik</span>
+                  <span class="estimate-value">{{ formatPrice(priceEstimate()!.minPrice) }} – {{ formatPrice(priceEstimate()!.maxPrice) }} / {{ priceEstimate()!.unit }}</span>
+                </div>
+                <div class="estimate-row">
+                  <span class="estimate-label">Keskmine hind</span>
+                  <span class="estimate-value highlight">{{ formatPrice(priceEstimate()!.avgPrice) }} / {{ priceEstimate()!.unit }}</span>
+                </div>
+                @if (priceEstimate()!.estimatedTotal) {
+                  <div class="estimate-divider"></div>
+                  <div class="estimate-row total">
+                    <span class="estimate-label">Hinnanguline kogumaksumus</span>
+                    <span class="estimate-value">{{ formatPrice(priceEstimate()!.estimatedTotal!.min) }} – {{ formatPrice(priceEstimate()!.estimatedTotal!.max) }}</span>
+                  </div>
+                }
+                <div class="estimate-footer">
+                  <span>Põhineb {{ priceEstimate()!.sampleCount }} pakkumisel</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Step 2: Select Suppliers -->
+    @if (currentStep() === 2) {
+      <div class="step-content">
+        <div class="step-header-row">
+          <div>
+            <h2>Vali tarnijad</h2>
+            <p class="step-description">Vali ettevõtted, kellele hinnapäring saata</p>
+          </div>
+          <div class="selection-actions">
+            <button class="btn-text" (click)="selectAllSuppliers()">Vali kõik</button>
+            <button class="btn-text" (click)="deselectAllSuppliers()">Tühista valik</button>
+          </div>
+        </div>
+
+        <div class="selected-count">
+          <span class="count">{{ selectedSuppliers().length }}</span> tarnijat valitud
+        </div>
+
+        @if (loadingSuppliers()) {
+          <div class="loading-state">
+            <span class="spinner large"></span>
+            <span>Laadin tarnijaid...</span>
+          </div>
+        } @else {
+          <div class="suppliers-grid">
+            @for (supplier of suppliers(); track supplier.id) {
+              <div class="supplier-card" [class.selected]="supplier.selected" (click)="toggleSupplier(supplier)">
+                <div class="supplier-checkbox">
+                  @if (supplier.selected) {
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  }
+                </div>
+                <div class="supplier-info">
+                  <div class="supplier-name">
+                    {{ supplier.companyName }}
+                    @if (supplier.isVerified) {
+                      <span class="verified-badge" title="Verifitseeritud">✓</span>
+                    }
+                  </div>
+                  <div class="supplier-location">{{ supplier.city }}</div>
+                  @if (supplier.googleRating) {
+                    <div class="supplier-rating">
+                      <span class="stars">★</span>
+                      <span>{{ supplier.googleRating | number:'1.1-1' }}</span>
+                      <span class="reviews">({{ supplier.googleReviewCount }} arvustust)</span>
+                    </div>
+                  }
+                </div>
+                @if (supplier.trustScore) {
+                  <div class="trust-score" [class.high]="supplier.trustScore >= 80" [class.medium]="supplier.trustScore >= 60 && supplier.trustScore < 80">
+                    {{ supplier.trustScore }}%
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          @if (suppliers().length === 0) {
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <p>Selles kategoorias ja asukohas tarnijaid ei leitud</p>
+            </div>
+          }
+        }
+      </div>
+    }
+
+    <!-- Step 3: View Quotes -->
+    @if (currentStep() === 3) {
+      <div class="step-content">
+        <div class="success-header">
+          <div class="success-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+          </div>
+          <h2>Hinnapäring saadetud!</h2>
+          <p class="step-description">Saatsime hinnapäringu {{ selectedSuppliers().length }} tarnijale</p>
+        </div>
+
+        @if (campaign(); as camp) {
+          <div class="campaign-summary">
+            <div class="summary-card">
+              <h3>{{ camp.title }}</h3>
+              <div class="summary-details">
+                <div class="detail-row">
+                  <span class="label">Kategooria</span>
+                  <span class="value">{{ getCategoryLabel(camp.category) }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">Asukoht</span>
+                  <span class="value">{{ camp.location }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">Maht</span>
+                  <span class="value">{{ camp.quantity }} {{ camp.unit }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="label">Tähtaeg</span>
+                  <span class="value">{{ camp.deadline | date:'dd.MM.yyyy' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bids-section">
+              <h3>Pakkumised</h3>
+              @if (camp.bids && camp.bids.length > 0) {
+                <table class="bids-table">
+                  <thead>
+                    <tr>
+                      <th>Tarnija</th>
+                      <th>Hind</th>
+                      <th>Tähtaeg</th>
+                      <th>Staatus</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (bid of camp.bids; track bid.id) {
+                      <tr>
+                        <td>{{ bid.supplierName }}</td>
+                        <td class="price-cell">{{ formatPrice(bid.price) }}</td>
+                        <td>{{ bid.timelineDays ? bid.timelineDays + ' päeva' : '-' }}</td>
+                        <td>
+                          <span class="status-badge" [ngClass]="getBidStatusClass(bid.status)">
+                            {{ getBidStatusLabel(bid.status) }}
+                          </span>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              } @else {
+                <div class="no-bids">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  <p>Pakkumisi veel ei ole saabunud</p>
+                  <span class="hint">Teavitame sind e-posti teel, kui pakkumine saabub</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="step-actions center">
+          <button class="btn btn-primary" (click)="goToProjects()">
+            <span>Loo uus projekt</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+          <a routerLink="/" class="btn btn-secondary">Avalehele</a>
+        </div>
+      </div>
+    }
+
+    <!-- Navigation buttons -->
+    @if (currentStep() < 3) {
+      <div class="step-actions">
+        <button class="btn btn-secondary" (click)="prevStep()" [disabled]="currentStep() === 1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="19" y1="12" x2="5" y2="12"/>
+            <polyline points="12 19 5 12 12 5"/>
+          </svg>
+          <span>Tagasi</span>
+        </button>
+        <button class="btn btn-primary" (click)="nextStep()" [disabled]="loading()">
+          @if (loading()) {
+            <span class="spinner"></span>
+            <span>Saadan...</span>
+          } @else {
+            <span>{{ currentStep() === 2 ? 'Saada päring' : 'Edasi' }}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+              <polyline points="12 5 19 12 12 19"/>
+            </svg>
+          }
+        </button>
+      </div>
+    }
+  </div>
+</div>

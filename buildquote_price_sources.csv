@@ -1,0 +1,13 @@
+source_id,company_name,website,price_list_url,type,notes
+ehitame24,Ehitaja Sinu Kodule,https://ehitame24.ee,https://ehitame24.ee/hinnakiri/,Ehitusfirma,Tööhinnad km-ta ja ilma materjalita
+ehitusabiline,Ehitusabiline,http://www.ehitusabiline.ee,http://www.ehitusabiline.ee/teenused/VIIMISTLUST%C3%96%C3%96D,Ehitusfirma,Tööhinnad km-ga
+raemeistrid,Raemeistrid,https://www.raemeistrid.ee,https://www.raemeistrid.ee/teenused-ja-hinnad,Ehitusfirma,Tööhinnad ilma materjalita
+radelmark,Radelmark OÜ,https://radelmark.ee,https://radelmark.ee/hinnad/,Ehitusfirma,Katuse- ja fassaaditööd
+toruabi,ToruAbi,https://www.toruabi.info,https://www.toruabi.info/torutoode-hinnakiri/,Torutööd,Tunnipõhised hinnad
+toruexpert,ToruExpert,https://www.toruexpert.ee,https://www.toruexpert.ee/hinnakiri/,Torutööd,Tunnipõhised hinnad
+ehituskaup24,Ehituskaup24 (Soosing OÜ),https://www.ehituskaup24.ee,https://hinnad.ehituskaup24.ee/,E-pood,Suurim valik ja hinnavõrdlus
+bauhof,Bauhof,https://www.bauhof.ee,,E-pood,Ehitusmaterjalid
+puumarket,Puumarket,https://www.puumarket.ee,,E-pood,Puit ja puittooted
+ehomer,Homer,https://www.ehomer.ee,,E-pood,Projektimüük al 990€ tasuta transport
+uponor,Uponor,https://www.uponor.com/et-ee,,Tootja,Põrandaküte ja torustik
+sanventehitus,SanVentEhitus,https://torutöödtartu.ee,,KVVK ettevõte,Tartu piirkond küte/vesi/kanal

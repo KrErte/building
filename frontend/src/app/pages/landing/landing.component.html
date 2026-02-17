@@ -1,0 +1,519 @@
+<div class="landing">
+  <!-- NAVBAR -->
+  <nav class="navbar" [class.scrolled]="true">
+    <div class="nav-container">
+      <!-- Logo -->
+      <a routerLink="/" class="nav-logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">BuildQuote</span>
+      </a>
+
+      <!-- Center Links (Desktop) -->
+      <div class="nav-links">
+        <a (click)="scrollTo('features')" class="nav-link">{{ 'NAV.FEATURES' | translate }}</a>
+        <a (click)="scrollTo('pricing')" class="nav-link">{{ 'NAV.PRICING' | translate }}</a>
+        <a (click)="scrollTo('faq')" class="nav-link">{{ 'NAV.FAQ' | translate }}</a>
+      </div>
+
+      <!-- Right Side -->
+      <div class="nav-actions">
+        <!-- Language Switcher -->
+        <div class="lang-switcher">
+          @for (lang of languages; track lang) {
+            <button
+              class="lang-btn"
+              [class.active]="currentLang() === lang"
+              (click)="setLanguage(lang)">
+              {{ lang }}
+            </button>
+          }
+        </div>
+
+        <a routerLink="/login" class="nav-link login-link">{{ 'NAV.LOGIN' | translate }}</a>
+        <a routerLink="/projects/new" class="btn btn-primary">{{ 'NAV.START_FREE' | translate }}</a>
+      </div>
+
+      <!-- Mobile Menu Button -->
+      <button class="mobile-menu-btn" (click)="toggleMobileMenu()">
+        <span class="hamburger" [class.open]="mobileMenuOpen()"></span>
+      </button>
+    </div>
+
+    <!-- Mobile Menu -->
+    @if (mobileMenuOpen()) {
+      <div class="mobile-menu">
+        <a (click)="scrollTo('features')" class="mobile-link">{{ 'NAV.FEATURES' | translate }}</a>
+        <a (click)="scrollTo('pricing')" class="mobile-link">{{ 'NAV.PRICING' | translate }}</a>
+        <a (click)="scrollTo('faq')" class="mobile-link">{{ 'NAV.FAQ' | translate }}</a>
+        <hr>
+        <a routerLink="/login" class="mobile-link">{{ 'NAV.LOGIN' | translate }}</a>
+        <a routerLink="/projects/new" class="btn btn-primary btn-block">{{ 'NAV.START_FREE' | translate }}</a>
+      </div>
+    }
+  </nav>
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="hero-bg">
+      <div class="gradient-orb orb-1"></div>
+      <div class="gradient-orb orb-2"></div>
+      <div class="grid-pattern"></div>
+    </div>
+
+    <div class="hero-container hero-centered">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="badge-icon">✨</span>
+          <span>{{ 'HERO.BADGE' | translate }}</span>
+        </div>
+
+        <h1 class="hero-title">
+          {{ 'HERO.TITLE_1' | translate }}<br>
+          {{ 'HERO.TITLE_2' | translate }}<br>
+          <span class="gradient-text">{{ 'HERO.TITLE_3' | translate }}</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          {{ 'HERO.SUBTITLE' | translate }}
+          <strong>{{ supplierCount() }}</strong> {{ 'HERO.SUBTITLE_COMPANIES' | translate }}
+        </p>
+
+        <div class="hero-buttons">
+          <a routerLink="/projects/new" class="btn btn-primary btn-large">
+            <span>{{ 'NAV.START_FREE' | translate }}</span>
+            <span class="btn-arrow">→</span>
+          </a>
+          <a (click)="scrollTo('how-it-works')" class="btn btn-secondary btn-large">
+            <span class="play-icon">▶</span>
+            <span>{{ 'HERO.WATCH_HOW' | translate }}</span>
+          </a>
+        </div>
+
+        <div class="hero-stats">
+          <div class="stat">
+            <span class="stat-number">{{ supplierCount() }}+</span>
+            <span class="stat-label">{{ 'HERO.STAT_SUPPLIERS' | translate }}</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat-number">12</span>
+            <span class="stat-label">{{ 'HERO.STAT_CATEGORIES' | translate }}</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat-number">24h</span>
+            <span class="stat-label">{{ 'HERO.STAT_RESPONSES' | translate }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- PAIN POINTS -->
+  <section class="pain-points">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">{{ 'PAIN.TAG' | translate }}</span>
+        <h2>{{ 'PAIN.TITLE' | translate }}</h2>
+      </div>
+
+      <div class="pain-grid">
+        <div class="pain-card">
+          <span class="pain-icon">😤</span>
+          <h3>{{ 'PAIN.ITEM_1_TITLE' | translate }}</h3>
+          <p>{{ 'PAIN.ITEM_1_DESC' | translate }}</p>
+        </div>
+        <div class="pain-card">
+          <span class="pain-icon">📊</span>
+          <h3>{{ 'PAIN.ITEM_2_TITLE' | translate }}</h3>
+          <p>{{ 'PAIN.ITEM_2_DESC' | translate }}</p>
+        </div>
+        <div class="pain-card">
+          <span class="pain-icon">⏰</span>
+          <h3>{{ 'PAIN.ITEM_3_TITLE' | translate }}</h3>
+          <p>{{ 'PAIN.ITEM_3_DESC' | translate }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS - Animated Component -->
+  <div id="how-it-works">
+    <app-how-it-works />
+  </div>
+
+  <!-- FEATURES -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">{{ 'FEATURES.TAG' | translate }}</span>
+        <h2>{{ 'FEATURES.TITLE' | translate }}</h2>
+        <p class="section-subtitle">{{ 'FEATURES.SUBTITLE' | translate }}</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🏢</div>
+          <h3>{{ 'FEATURES.F1_TITLE' | translate }}</h3>
+          <p>{{ 'FEATURES.F1_DESC' | translate }}</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📋</div>
+          <h3>{{ 'FEATURES.F2_TITLE' | translate }}</h3>
+          <p>{{ 'FEATURES.F2_DESC' | translate }}</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>{{ 'FEATURES.F3_TITLE' | translate }}</h3>
+          <p>{{ 'FEATURES.F3_DESC' | translate }}</p>
+        </div>
+        <div class="feature-card highlighted">
+          <span class="feature-tag">{{ 'FEATURES.NEW' | translate }}</span>
+          <div class="feature-icon">🤖</div>
+          <h3>{{ 'FEATURES.F4_TITLE' | translate }}</h3>
+          <p>{{ 'FEATURES.F4_DESC' | translate }}</p>
+        </div>
+        <div class="feature-card highlighted">
+          <span class="feature-tag">{{ 'FEATURES.NEW' | translate }}</span>
+          <div class="feature-icon">💰</div>
+          <h3>{{ 'FEATURES.F5_TITLE' | translate }}</h3>
+          <p>{{ 'FEATURES.F5_DESC' | translate }}</p>
+        </div>
+        <div class="feature-card highlighted">
+          <span class="feature-tag">{{ 'FEATURES.NEW' | translate }}</span>
+          <div class="feature-icon">⚡</div>
+          <h3>{{ 'FEATURES.F6_TITLE' | translate }}</h3>
+          <p>{{ 'FEATURES.F6_DESC' | translate }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing" id="pricing">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">{{ 'PRICING.TAG' | translate }}</span>
+        <h2>{{ 'PRICING.TITLE' | translate }}</h2>
+        <p class="section-subtitle">{{ 'PRICING.SUBTITLE' | translate }}</p>
+      </div>
+
+      <!-- Billing Toggle -->
+      <div class="billing-toggle">
+        <span [class.active]="!isAnnual()">{{ 'PRICING.MONTHLY' | translate }}</span>
+        <button class="toggle-switch" (click)="toggleBilling()" [class.annual]="isAnnual()">
+          <span class="toggle-knob"></span>
+        </button>
+        <span [class.active]="isAnnual()">
+          {{ 'PRICING.ANNUAL' | translate }}
+          <span class="save-badge">{{ 'PRICING.SAVE' | translate }}</span>
+        </span>
+      </div>
+
+      <div class="pricing-grid">
+        <!-- Free Plan -->
+        <div class="pricing-card">
+          <div class="plan-header">
+            <h3>{{ 'PRICING.PLAN_FREE' | translate }}</h3>
+            <p class="plan-description">{{ 'PRICING.PLAN_FREE_DESC' | translate }}</p>
+          </div>
+          <div class="plan-price">
+            <span class="price">€0</span>
+            <span class="period">{{ 'PRICING.FOREVER' | translate }}</span>
+          </div>
+          <ul class="plan-features">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_FREE_F1' | translate }}
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_FREE_F2' | translate }}
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_FREE_F3' | translate }}
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_FREE_F4' | translate }}
+            </li>
+          </ul>
+          <a routerLink="/projects/new" class="btn btn-secondary">
+            {{ 'PRICING.PLAN_FREE_CTA' | translate }}
+          </a>
+        </div>
+
+        <!-- Pro Plan -->
+        <div class="pricing-card highlighted">
+          <div class="popular-badge">{{ 'PRICING.POPULAR' | translate }}</div>
+          <div class="plan-header">
+            <h3>{{ 'PRICING.PLAN_PRO' | translate }}</h3>
+            <p class="plan-description">{{ 'PRICING.PLAN_PRO_DESC' | translate }}</p>
+          </div>
+          <div class="plan-price">
+            <span class="price">€{{ isAnnual() ? 39 : 49 }}</span>
+            <span class="period">{{ 'PRICING.PER_MONTH' | translate }}</span>
+            @if (isAnnual()) {
+              <span class="savings">{{ 'PRICING.SAVING' | translate }} 20%</span>
+            }
+          </div>
+          <ul class="plan-features">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_PRO_F1' | translate }}
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_PRO_F2' | translate }}
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_PRO_F3' | translate }}
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_PRO_F4' | translate }}
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_PRO_F5' | translate }}
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_PRO_F6' | translate }}
+            </li>
+          </ul>
+          <a routerLink="/projects/new" class="btn btn-primary">
+            {{ 'PRICING.PLAN_PRO_CTA' | translate }}
+          </a>
+        </div>
+
+        <!-- Enterprise Plan -->
+        <div class="pricing-card">
+          <div class="plan-header">
+            <h3>{{ 'PRICING.PLAN_ENTERPRISE' | translate }}</h3>
+            <p class="plan-description">{{ 'PRICING.PLAN_ENTERPRISE_DESC' | translate }}</p>
+          </div>
+          <div class="plan-price">
+            <span class="price">€{{ isAnnual() ? 159 : 199 }}</span>
+            <span class="period">{{ 'PRICING.PER_MONTH' | translate }}</span>
+            @if (isAnnual()) {
+              <span class="savings">{{ 'PRICING.SAVING' | translate }} 20%</span>
+            }
+          </div>
+          <ul class="plan-features">
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_ENTERPRISE_F1' | translate }}
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_ENTERPRISE_F2' | translate }}
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_ENTERPRISE_F3' | translate }}
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_ENTERPRISE_F4' | translate }}
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_ENTERPRISE_F5' | translate }}
+            </li>
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {{ 'PRICING.PLAN_ENTERPRISE_F6' | translate }}
+            </li>
+          </ul>
+          <a href="mailto:kristo.erte@gmail.com" class="btn btn-secondary">
+            {{ 'PRICING.PLAN_ENTERPRISE_CTA' | translate }}
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">{{ 'FAQ.TAG' | translate }}</span>
+        <h2>{{ 'FAQ.TITLE' | translate }}</h2>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item" [class.open]="faqItems[0].open">
+          <button class="faq-question" (click)="toggleFaq(0)">
+            <span>{{ 'FAQ.Q1' | translate }}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          @if (faqItems[0].open) {
+            <div class="faq-answer">
+              <p>{{ 'FAQ.A1' | translate }}</p>
+            </div>
+          }
+        </div>
+        <div class="faq-item" [class.open]="faqItems[1].open">
+          <button class="faq-question" (click)="toggleFaq(1)">
+            <span>{{ 'FAQ.Q2' | translate }}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          @if (faqItems[1].open) {
+            <div class="faq-answer">
+              <p>{{ 'FAQ.A2' | translate }}</p>
+            </div>
+          }
+        </div>
+        <div class="faq-item" [class.open]="faqItems[2].open">
+          <button class="faq-question" (click)="toggleFaq(2)">
+            <span>{{ 'FAQ.Q3' | translate }}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          @if (faqItems[2].open) {
+            <div class="faq-answer">
+              <p>{{ 'FAQ.A3' | translate }}</p>
+            </div>
+          }
+        </div>
+        <div class="faq-item" [class.open]="faqItems[3].open">
+          <button class="faq-question" (click)="toggleFaq(3)">
+            <span>{{ 'FAQ.Q4' | translate }}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          @if (faqItems[3].open) {
+            <div class="faq-answer">
+              <p>{{ 'FAQ.A4' | translate }}</p>
+            </div>
+          }
+        </div>
+        <div class="faq-item" [class.open]="faqItems[4].open">
+          <button class="faq-question" (click)="toggleFaq(4)">
+            <span>{{ 'FAQ.Q5' | translate }}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          @if (faqItems[4].open) {
+            <div class="faq-answer">
+              <p>{{ 'FAQ.A5' | translate }}</p>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA SECTION -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-content">
+        <h2>{{ 'CTA.TITLE' | translate }}</h2>
+        <p>{{ 'CTA.SUBTITLE' | translate }}</p>
+        <div class="cta-buttons">
+          <a routerLink="/projects/new" class="btn btn-primary btn-large">
+            {{ 'CTA.START' | translate }}
+            <span class="btn-arrow">→</span>
+          </a>
+          <a href="mailto:kristo.erte@gmail.com" class="btn btn-ghost btn-large">
+            {{ 'CTA.TALK' | translate }}
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a routerLink="/" class="footer-logo">
+            <span class="logo-icon">⚡</span>
+            <span>BuildQuote</span>
+          </a>
+          <p>{{ 'FOOTER.TAGLINE' | translate }}</p>
+        </div>
+
+        <div class="footer-links">
+          <h4>{{ 'FOOTER.PRODUCT' | translate }}</h4>
+          <a (click)="scrollTo('features')">{{ 'NAV.FEATURES' | translate }}</a>
+          <a (click)="scrollTo('pricing')">{{ 'NAV.PRICING' | translate }}</a>
+          <a routerLink="/projects/new">{{ 'NAV.START_FREE' | translate }}</a>
+        </div>
+
+        <div class="footer-links">
+          <h4>{{ 'FOOTER.COMPANY' | translate }}</h4>
+          <a routerLink="/about">{{ 'FOOTER.ABOUT' | translate }}</a>
+          <a href="mailto:kristo.erte@gmail.com">{{ 'FOOTER.CONTACT' | translate }}</a>
+          <a routerLink="/careers">{{ 'FOOTER.CAREERS' | translate }}</a>
+        </div>
+
+        <div class="footer-links">
+          <h4>{{ 'FOOTER.LEGAL' | translate }}</h4>
+          <a routerLink="/privacy">{{ 'FOOTER.PRIVACY' | translate }}</a>
+          <a routerLink="/terms">{{ 'FOOTER.TERMS' | translate }}</a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>{{ 'FOOTER.COPYRIGHT' | translate }}</p>
+        <div class="footer-social">
+          <a href="#" aria-label="LinkedIn">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+          </a>
+          <a href="#" aria-label="Facebook">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>

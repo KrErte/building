@@ -1,0 +1,157 @@
+<div class="bid-page">
+  <div class="container">
+    <!-- Header -->
+    <header class="bid-header">
+      <div class="logo">
+        <span class="logo-icon">&#9889;</span>
+        <span class="logo-text">BuildQuote</span>
+      </div>
+    </header>
+
+    <!-- Loading State -->
+    <div class="loading-container" *ngIf="isLoading()">
+      <div class="spinner"></div>
+      <p>Laadin paringut...</p>
+    </div>
+
+    <!-- Error State -->
+    <div class="error-container" *ngIf="!isLoading() && error() && !bidPage()">
+      <div class="error-icon">&#9888;</div>
+      <h2>Viga</h2>
+      <p>{{ error() }}</p>
+    </div>
+
+    <!-- Success State -->
+    <div class="success-container" *ngIf="isSubmitted()">
+      <div class="success-icon">&#10003;</div>
+      <h2>Tanan!</h2>
+      <p>Teie pakkumine on edukalt esitatud.</p>
+      <div class="success-details" *ngIf="bidPage()">
+        <p><strong>Paring:</strong> {{ bidPage()!.campaignTitle }}</p>
+        <p><strong>Teie hind:</strong> {{ formatCurrency(price()) }}</p>
+      </div>
+      <p class="success-note">Teavitame teid otsusest e-posti teel.</p>
+    </div>
+
+    <!-- Bid Form -->
+    <div class="bid-content" *ngIf="!isLoading() && bidPage() && !isSubmitted()">
+      <!-- Job Details Card -->
+      <div class="job-card">
+        <h1>{{ bidPage()!.campaignTitle }}</h1>
+
+        <div class="job-meta">
+          <div class="meta-item">
+            <span class="meta-label">Kategooria</span>
+            <span class="meta-value">{{ bidPage()!.category }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Asukoht</span>
+            <span class="meta-value">{{ bidPage()!.location || '-' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Maht</span>
+            <span class="meta-value">{{ bidPage()!.quantity }} {{ bidPage()!.unit }}</span>
+          </div>
+          <div class="meta-item" *ngIf="bidPage()!.deadline">
+            <span class="meta-label">Tahtaeg</span>
+            <span class="meta-value">{{ bidPage()!.deadline }}</span>
+          </div>
+        </div>
+
+        <div class="job-description" *ngIf="bidPage()!.specifications">
+          <h3>Kirjeldus</h3>
+          <p>{{ bidPage()!.specifications }}</p>
+        </div>
+
+        <div class="budget-info" *ngIf="bidPage()!.maxBudget">
+          <span class="budget-label">Maksimaalne eelarve:</span>
+          <span class="budget-value">{{ formatCurrency(bidPage()!.maxBudget) }}</span>
+        </div>
+      </div>
+
+      <!-- Supplier Info -->
+      <div class="supplier-info">
+        <p>Esitad pakkumise kui: <strong>{{ bidPage()!.supplierName }}</strong></p>
+        <p class="supplier-email">{{ bidPage()!.supplierEmail }}</p>
+      </div>
+
+      <!-- Error Message -->
+      <div class="error-message" *ngIf="error()">
+        <span class="error-icon-small">&#9888;</span>
+        {{ error() }}
+      </div>
+
+      <!-- Bid Form -->
+      <form class="bid-form" (ngSubmit)="submitBid()">
+        <div class="form-group">
+          <label for="price">Hind (EUR) *</label>
+          <div class="input-wrapper">
+            <span class="input-prefix">&#8364;</span>
+            <input
+              type="number"
+              id="price"
+              [ngModel]="price()"
+              (ngModelChange)="price.set($event)"
+              name="price"
+              placeholder="0"
+              min="1"
+              step="0.01"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="timeline">Taitmise aeg (paevad)</label>
+            <input
+              type="number"
+              id="timeline"
+              [ngModel]="timelineDays()"
+              (ngModelChange)="timelineDays.set($event)"
+              name="timelineDays"
+              placeholder="nt. 14"
+              min="1"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="deliveryDate">Valmimise kuupaev</label>
+            <input
+              type="date"
+              id="deliveryDate"
+              [ngModel]="deliveryDate()"
+              (ngModelChange)="deliveryDate.set($event)"
+              name="deliveryDate"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="notes">Lisainfo ja margkused</label>
+          <textarea
+            id="notes"
+            [ngModel]="notes()"
+            (ngModelChange)="notes.set($event)"
+            name="notes"
+            rows="4"
+            placeholder="Lisage siia oluline info, tingimused, materjalid jne..."
+          ></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg" [disabled]="isSubmitting()">
+          <span *ngIf="!isSubmitting()">Esita pakkumine</span>
+          <span *ngIf="isSubmitting()" class="loading-text">
+            <span class="spinner-small"></span>
+            Esitan...
+          </span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bid-footer">
+      <p>Powered by BuildQuote - Ehitushanked lihtsalt</p>
+    </footer>
+  </div>
+</div>

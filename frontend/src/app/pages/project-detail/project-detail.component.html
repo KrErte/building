@@ -1,0 +1,244 @@
+<div class="project-detail">
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading()">
+    <div class="spinner"></div>
+    <p>Laadin projekti...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-container" *ngIf="!isLoading() && error()">
+    <div class="error-icon">&#9888;</div>
+    <h2>Viga</h2>
+    <p>{{ error() }}</p>
+    <a routerLink="/projects/new" class="btn btn-primary">Loo uus projekt</a>
+  </div>
+
+  <!-- Campaign Content -->
+  <div class="content" *ngIf="!isLoading() && campaign()">
+    <!-- Header -->
+    <header class="page-header">
+      <div class="header-left">
+        <a routerLink="/projects/new" class="back-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          Tagasi
+        </a>
+        <h1>{{ campaign()!.title }}</h1>
+        <div class="header-meta">
+          <span class="status-badge" [ngClass]="getStatusClass(campaign()!.status)">
+            {{ getStatusLabel(campaign()!.status) }}
+          </span>
+          <span class="meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            {{ campaign()!.location || 'Asukoht maaramata' }}
+          </span>
+          <span class="meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            {{ formatDate(campaign()!.createdAt) }}
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon sent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ campaign()!.totalSent }}</span>
+          <span class="stat-label">Saadetud</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon responded">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+            <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ bids().length }}</span>
+          <span class="stat-label">Pakkumisi</span>
+        </div>
+      </div>
+
+      <div class="stat-card" *ngIf="bestBid()">
+        <div class="stat-icon best">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ formatCurrency(bestBid()!.price) }}</span>
+          <span class="stat-label">Parim hind</span>
+        </div>
+      </div>
+
+      <div class="stat-card" *ngIf="potentialSavings() > 0">
+        <div class="stat-icon savings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ formatCurrency(potentialSavings()) }}</span>
+          <span class="stat-label">Voimalik saastu</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Project Details -->
+    <div class="details-section">
+      <h2>Projekti detailid</h2>
+      <div class="details-grid">
+        <div class="detail-item">
+          <span class="detail-label">Kategooria</span>
+          <span class="detail-value">{{ campaign()!.category }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Maht</span>
+          <span class="detail-value">{{ campaign()!.quantity }} {{ campaign()!.unit }}</span>
+        </div>
+        <div class="detail-item" *ngIf="campaign()!.maxBudget">
+          <span class="detail-label">Maksimaalne eelarve</span>
+          <span class="detail-value">{{ formatCurrency(campaign()!.maxBudget) }}</span>
+        </div>
+        <div class="detail-item" *ngIf="campaign()!.deadline">
+          <span class="detail-label">Tahtaeg</span>
+          <span class="detail-value">{{ formatDate(campaign()!.deadline) }}</span>
+        </div>
+      </div>
+      <div class="specifications" *ngIf="campaign()!.specifications">
+        <span class="detail-label">Kirjeldus</span>
+        <p>{{ campaign()!.specifications }}</p>
+      </div>
+    </div>
+
+    <!-- Bids Section -->
+    <div class="bids-section">
+      <div class="section-header">
+        <h2>Pakkumised</h2>
+        <span class="bid-count" *ngIf="bids().length > 0">{{ bids().length }} pakkumist</span>
+      </div>
+
+      <!-- Loading Bids -->
+      <div class="bids-loading" *ngIf="isLoadingBids()">
+        <div class="spinner-small"></div>
+        <span>Laadin pakkumisi...</span>
+      </div>
+
+      <!-- No Bids -->
+      <div class="no-bids" *ngIf="!isLoadingBids() && bids().length === 0">
+        <div class="no-bids-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+            <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+          </svg>
+        </div>
+        <h3>Pakkumisi pole veel</h3>
+        <p>Pakkumised hakkavad laekuma, kui tarnijad vastavad sinu paringule.</p>
+      </div>
+
+      <!-- Bids Grid -->
+      <div class="bids-grid" *ngIf="!isLoadingBids() && bids().length > 0">
+        <div class="bid-card" *ngFor="let bid of sortedBids(); let i = index"
+             [class.best-bid]="i === 0"
+             [class.second-bid]="i === 1"
+             [class.third-bid]="i === 2">
+
+          <!-- Rank Badge -->
+          <div class="rank-badge" *ngIf="i < 3">
+            <span *ngIf="i === 0">&#127942;</span>
+            <span *ngIf="i === 1">&#129352;</span>
+            <span *ngIf="i === 2">&#129353;</span>
+          </div>
+
+          <!-- Bid Header -->
+          <div class="bid-header">
+            <div class="supplier-info">
+              <div class="supplier-avatar">
+                {{ bid.supplierName.charAt(0).toUpperCase() }}
+              </div>
+              <div class="supplier-details">
+                <span class="supplier-name">{{ bid.supplierName }}</span>
+                <span class="supplier-email">{{ bid.supplierEmail }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Price Section -->
+          <div class="bid-price-section">
+            <div class="price-main">
+              <span class="price-value">{{ formatCurrency(bid.price) }}</span>
+              <span class="verdict-badge" [ngClass]="getVerdictClass(bid.verdict)" *ngIf="bid.verdict">
+                {{ getVerdictLabel(bid.verdict) }}
+              </span>
+            </div>
+
+            <div class="price-analysis" *ngIf="bid.percentFromMedian !== undefined">
+              <span class="analysis-label">Turuhinnast:</span>
+              <span class="analysis-value"
+                    [class.positive]="bid.percentFromMedian < 0"
+                    [class.negative]="bid.percentFromMedian > 10">
+                {{ bid.percentFromMedian > 0 ? '+' : '' }}{{ bid.percentFromMedian | number:'1.1-1' }}%
+              </span>
+            </div>
+
+            <div class="market-price" *ngIf="bid.marketPricePerUnit">
+              <span>Turuhind: {{ formatCurrency(bid.marketPricePerUnit) }}/{{ campaign()!.unit }}</span>
+            </div>
+          </div>
+
+          <!-- Bid Details -->
+          <div class="bid-details">
+            <div class="detail-row" *ngIf="bid.timelineDays">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <span>{{ bid.timelineDays }} paeva</span>
+            </div>
+            <div class="detail-row" *ngIf="bid.deliveryDate">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <span>{{ formatDate(bid.deliveryDate) }}</span>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="bid-notes" *ngIf="bid.notes">
+            <p>{{ bid.notes }}</p>
+          </div>
+
+          <!-- Submitted Time -->
+          <div class="bid-footer">
+            <span class="submitted-time">{{ formatDateTime(bid.submittedAt) }}</span>
+            <button class="btn btn-sm btn-primary" (click)="selectBid(bid)">
+              Vali pakkumine
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

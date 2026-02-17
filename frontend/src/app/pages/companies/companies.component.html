@@ -1,0 +1,173 @@
+<div class="companies-page">
+  <div class="container">
+    <!-- Header -->
+    <header class="page-header">
+      <div class="header-content">
+        <h1>Ettevotted</h1>
+        <p class="subtitle">Koik registreeritud ettevotted ja tarnijad</p>
+      </div>
+      <div class="total-count" *ngIf="!isLoading()">
+        <span class="count">{{ totalElements() }}</span>
+        <span class="label">ettevottet</span>
+      </div>
+    </header>
+
+    <!-- Search Bar -->
+    <div class="search-section">
+      <div class="search-wrapper">
+        <span class="search-icon">&#128269;</span>
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Otsi nime, e-posti voi asukoha jargi..."
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          (keyup.enter)="onSearch()"
+        />
+        <button
+          *ngIf="searchQuery()"
+          class="clear-btn"
+          (click)="clearSearch()"
+        >&#10005;</button>
+      </div>
+      <button class="btn btn-primary" (click)="onSearch()">Otsi</button>
+    </div>
+
+    <!-- Error Message -->
+    <div class="error-message" *ngIf="error()">
+      <span class="error-icon">&#9888;</span>
+      {{ error() }}
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading-container" *ngIf="isLoading()">
+      <div class="spinner"></div>
+      <p>Laadin ettevotteid...</p>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container" *ngIf="!isLoading() && !error()">
+      <table class="companies-table">
+        <thead>
+          <tr>
+            <th class="sortable" (click)="onSort('name')">
+              Nimi
+              <span class="sort-icon" *ngIf="sortBy() === 'name'">
+                {{ sortDir() === 'asc' ? '&#9650;' : '&#9660;' }}
+              </span>
+            </th>
+            <th>Kontakt</th>
+            <th>Telefon</th>
+            <th>Kategooriad</th>
+            <th class="sortable" (click)="onSort('city')">
+              Asukoht
+              <span class="sort-icon" *ngIf="sortBy() === 'city'">
+                {{ sortDir() === 'asc' ? '&#9650;' : '&#9660;' }}
+              </span>
+            </th>
+            <th class="sortable" (click)="onSort('source')">
+              Allikas
+              <span class="sort-icon" *ngIf="sortBy() === 'source'">
+                {{ sortDir() === 'asc' ? '&#9650;' : '&#9660;' }}
+              </span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let company of companies()">
+            <td class="company-name">
+              <div class="name-cell">
+                <span class="name">{{ company.companyName }}</span>
+                <span class="verified-badge" *ngIf="company.isVerified" title="Verified">&#10003;</span>
+              </div>
+              <a *ngIf="company.email" class="email">{{ company.email }}</a>
+            </td>
+            <td>{{ company.contactPerson || '-' }}</td>
+            <td>
+              <a *ngIf="company.phone" [href]="'tel:' + company.phone" class="phone">
+                {{ company.phone }}
+              </a>
+              <span *ngIf="!company.phone">-</span>
+            </td>
+            <td class="categories-cell">
+              <span
+                *ngFor="let cat of company.categories"
+                class="category-tag"
+              >
+                {{ getCategoryLabel(cat) }}
+              </span>
+            </td>
+            <td>{{ company.city || '-' }}</td>
+            <td>
+              <span
+                class="source-badge"
+                [style.backgroundColor]="getSourceColor(company.source) + '20'"
+                [style.color]="getSourceColor(company.source)"
+              >
+                {{ getSourceLabel(company.source) }}
+              </span>
+            </td>
+          </tr>
+          <tr *ngIf="companies().length === 0">
+            <td colspan="6" class="no-results">
+              <span class="no-results-icon">&#128269;</span>
+              <p>Ettevotteid ei leitud</p>
+              <button class="btn btn-secondary" (click)="clearSearch()" *ngIf="searchQuery()">
+                Tyhjenda otsing
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="!isLoading() && totalPages() > 1">
+      <button
+        class="page-btn"
+        [disabled]="!hasPrevious()"
+        (click)="prevPage()"
+      >
+        &#8592; Eelmine
+      </button>
+
+      <div class="page-numbers">
+        <button
+          *ngIf="currentPage() > 2"
+          class="page-num"
+          (click)="goToPage(0)"
+        >1</button>
+        <span *ngIf="currentPage() > 3" class="ellipsis">...</span>
+
+        <button
+          *ngFor="let page of getPageNumbers()"
+          class="page-num"
+          [class.active]="page === currentPage()"
+          (click)="goToPage(page)"
+        >
+          {{ page + 1 }}
+        </button>
+
+        <span *ngIf="currentPage() < totalPages() - 4" class="ellipsis">...</span>
+        <button
+          *ngIf="currentPage() < totalPages() - 3"
+          class="page-num"
+          (click)="goToPage(totalPages() - 1)"
+        >{{ totalPages() }}</button>
+      </div>
+
+      <button
+        class="page-btn"
+        [disabled]="!hasNext()"
+        (click)="nextPage()"
+      >
+        Jargmine &#8594;
+      </button>
+    </div>
+
+    <!-- Page Info -->
+    <div class="page-info" *ngIf="!isLoading() && totalElements() > 0">
+      Kuvatakse {{ currentPage() * pageSize() + 1 }} - {{ getEndItem() }} / {{ totalElements() }} ettevottest
+    </div>
+  </div>
+</div>

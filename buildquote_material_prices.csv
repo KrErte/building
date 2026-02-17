@@ -1,0 +1,73 @@
+category,material_name,unit,min_price_eur,max_price_eur,avg_price_eur,source,notes
+Soojustus,Rockwool plaatvill 100mm,m2,5,8,6.5,ehituskaup24/bauhof,Fassaadile
+Soojustus,Rockwool plaatvill 150mm,m2,7,11,9,ehituskaup24/bauhof,Fassaadile
+Soojustus,Rockwool rullvill 200mm,m2,6,9,7.5,ehituskaup24/bauhof,Laele/pööningusse
+Soojustus,EPS 100 soojustusplaat 100mm,m2,4,7,5.5,ehituskaup24/bauhof,Fassaadile
+Soojustus,XPS soojustusplaat 100mm,m2,8,13,10,ehituskaup24/bauhof,Vundamendile
+Soojustus,PIR isolatsiooniplaat 100mm,m2,15,25,20,ehituskaup24/kingspan,Premium soojustus
+Ehitusplaadid,Kipsplaat 12.5mm,m2,4,6,5,ehituskaup24/bauhof,Standardne GKB
+Ehitusplaadid,Kipsplaat 12.5mm niiskuskindel,m2,5,8,6.5,ehituskaup24/bauhof,GKBI roheline
+Ehitusplaadid,OSB-3 plaat 12mm,m2,6,10,8,ehituskaup24/bauhof,Niiskuskindel
+Ehitusplaadid,Vineer 12mm kask,m2,12,18,15,ehituskaup24,Siseviimistlusele
+Ehitusplaadid,Tuuletõkkeplaat 12mm,m2,4,7,5.5,ehituskaup24/bauhof,Isoplaat vms
+Plokid,Aeroc plokk 200mm,m2,18,25,22,ehituskaup24/bauhof,Gaasbetooni hind
+Plokid,Aeroc plokk 300mm,m2,25,35,30,ehituskaup24/bauhof,Gaasbetooni hind
+Plokid,Fibo plokk 200mm,m2,15,22,18,ehituskaup24/bauhof,Keramsiitplokk
+Plokid,Columbia betoonplokk,m2,12,18,15,ehituskaup24,Betoonplokk
+Puit,Prussid 50x100mm (kuivatatud),jm,1.5,3,2,ehituskaup24/puumarket,C24 konstruktsioonipuit
+Puit,Prussid 50x150mm (kuivatatud),jm,2,4,3,ehituskaup24/puumarket,C24 konstruktsioonipuit
+Puit,Prussid 50x200mm (kuivatatud),jm,3,5,4,ehituskaup24/puumarket,C24 konstruktsioonipuit
+Puit,Laud 25x100mm (kuivatatud),jm,0.5,1.5,1,ehituskaup24/puumarket,Roovlaud
+Puit,Sisevoodrilaud 12x95mm,m2,8,15,12,ehituskaup24/puumarket,Kuusk/mänd
+Puit,Välisvoodrilaud 21x145mm,m2,12,22,17,ehituskaup24/puumarket,Kuusk/mänd
+Puit,Terrassilaud 28x120mm,jm,3,8,5,ehituskaup24/puumarket,Immutatud/termopuit
+Põrandad,Laminaatparkett 8mm,m2,8,15,12,ehituskaup24/bauhof,Klass 32-33
+Põrandad,Puitparkett tamm 14mm,m2,25,50,35,ehituskaup24/bauhof,3-lipiline
+Põrandad,LVT vinüülparkett,m2,15,30,22,ehituskaup24/bauhof,Veekindel
+Põrandad,Põrandaplaat 60x60,m2,10,30,18,ehituskaup24/bauhof,Portselan/keraamika
+Põrandad,Seinaplaat 30x60,m2,8,25,15,ehituskaup24/bauhof,Keraamika
+Plaatimise materjalid,Plaadiliim (25kg kott),tk,8,15,12,ehituskaup24/bauhof,Weber/Kiilto
+Plaatimise materjalid,Vuugisegu (5kg),tk,5,12,8,ehituskaup24/bauhof,Weber/Kiilto
+Plaatimise materjalid,Hüdroisolatsioon (rull 10m2),tk,30,60,45,ehituskaup24/bauhof,Weber/Kiilto
+Segud,Isevalguv tasandussegu (25kg),tk,12,20,16,ehituskaup24/bauhof,Weber floor 110
+Segud,MP-75 krohvisegu (30kg),tk,6,10,8,ehituskaup24/bauhof,Masinapahtel
+Segud,Pahtlisegu (25kg),tk,10,18,14,ehituskaup24/bauhof,Weber/Knauf
+Segud,Betoon C25/30 valmissegu,m3,80,120,100,betoonitehas,Kohaletoimetusega
+Värvid,Sisevärv (10L),tk,25,60,40,ehituskaup24/bauhof,Tikkurila/Vivacolor
+Värvid,Välisvärv (10L),tk,40,80,55,ehituskaup24/bauhof,Tikkurila
+Värvid,Krunt (10L),tk,15,30,22,ehituskaup24/bauhof,Universaalne
+Torud vesi,Alupex toru 16mm,jm,1.5,3,2,ehituskaup24,Mitmekihiline
+Torud vesi,Alupex toru 20mm,jm,2,4,3,ehituskaup24,Mitmekihiline
+Torud vesi,Alupex toru 32mm,jm,4,7,5.5,ehituskaup24,Mitmekihiline
+Torud vesi,PE survetorud 32mm,jm,1.5,3,2,ehituskaup24,PN10/PN16
+Torud vesi,PE survetorud 50mm,jm,3,6,4.5,ehituskaup24,PN10/PN16
+Torud kanalisatsioon,Kanalisatsioonitoru DN50 sise,jm,2,4,3,ehituskaup24,PP hall
+Torud kanalisatsioon,Kanalisatsioonitoru DN110 sise,jm,3,6,4.5,ehituskaup24,PP hall
+Torud kanalisatsioon,Kanalisatsioonitoru DN110 välis,jm,5,10,7,ehituskaup24,PVC oranž
+Torud kanalisatsioon,Kanalisatsioonitoru DN160 välis,jm,8,15,11,ehituskaup24,PVC oranž
+Torud küte,Põrandakütte toru PE-Xa 16mm,jm,0.8,2,1.2,ehituskaup24/uponor,Rulli hind
+Torud küte,Põrandakütte toru PE-Xa 20mm,jm,1.2,2.5,1.8,ehituskaup24/uponor,Rulli hind
+Torud küte,Vasktoru 15mm,jm,4,7,5.5,ehituskaup24,Kütte-/veetorud
+Torud küte,Vasktoru 22mm,jm,6,10,8,ehituskaup24,Kütte-/veetorud
+Küte,Paneel radiaator 600x1000mm,tk,80,150,110,ehituskaup24/bauhof,22 tüüp
+Küte,Paneel radiaator 600x1400mm,tk,110,200,150,ehituskaup24/bauhof,22 tüüp
+Küte,Põrandakütte kollektorsüsteem 5 ringiga,tk,150,300,220,ehituskaup24,Koos kapiga
+Sanitaar,WC pott + paak komplekt,tk,80,250,150,ehituskaup24/bauhof,Standardne
+Sanitaar,Vannikomplekt 1700mm,tk,100,400,200,ehituskaup24/bauhof,Akrüül
+Sanitaar,Duššinurk 90x90,tk,150,500,300,ehituskaup24/bauhof,Klaas
+Sanitaar,Kraanikauss köök,tk,50,200,100,ehituskaup24/bauhof,Roostevaba
+Sanitaar,Segisti dušš,tk,40,200,100,ehituskaup24/bauhof,Termostaatiline kallim
+Sanitaar,Segisti köök,tk,30,150,80,ehituskaup24/bauhof,Standard
+Sanitaar,Boiler 80L,tk,200,400,300,ehituskaup24/bauhof,Elektri boiler
+Ventilatsioon,Ventilatsioonitoru DN100 plast,jm,3,6,4,ehituskaup24,Uponor/Fränkische
+Ventilatsioon,Ventilatsioonitoru DN125 plast,jm,4,8,6,ehituskaup24,Uponor/Fränkische
+Ventilatsioon,Ventilatsioonitoru DN160 plast,jm,5,10,7,ehituskaup24,Uponor/Fränkische
+Ventilatsioon,Soojusvahetiga ventilatsiooniagregaat,tk,1500,4000,2500,ehituskaup24/airobot,Komfort350-500
+Ventilatsioon,Ventilatsioonirest 100mm,tk,5,15,10,ehituskaup24,Plafoon
+Uksed aknad,Siseukse komplekt,tk,80,250,150,ehituskaup24/bauhof,Koos lengiga
+Uksed aknad,Välisuks komplekt,tk,300,800,500,ehituskaup24/bauhof,Soojustatud
+Uksed aknad,PVC aken 1200x1200,tk,150,350,250,ehituskaup24,3-klaas
+Katus,Katusekivi betoon,m2,10,20,15,ehituskaup24/bauhof,Monier vms
+Katus,Plekkkatus (profiilplekk),m2,8,15,12,ehituskaup24,Värvitud
+Katus,SBS rullmaterjal,m2,5,12,8,ehituskaup24,Bituumen
+Katus,Vihmaveesüsteem (renn+toru kompl),jm,8,18,12,ehituskaup24,Plast/metall

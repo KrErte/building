@@ -1,0 +1,366 @@
+.companies-page {
+  padding: 40px 0;
+  min-height: calc(100vh - 70px);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    color: var(--text-secondary);
+    font-size: 16px;
+  }
+
+  .total-count {
+    text-align: right;
+
+    .count {
+      display: block;
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--purple-primary);
+    }
+
+    .label {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+  }
+}
+
+.search-section {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+
+  .search-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      font-size: 18px;
+      color: var(--text-muted);
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 14px 48px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      color: var(--text-primary);
+      font-size: 15px;
+
+      &:focus {
+        border-color: var(--purple-primary);
+        box-shadow: 0 0 0 3px var(--purple-light);
+      }
+
+      &::placeholder {
+        color: var(--text-muted);
+      }
+    }
+
+    .clear-btn {
+      position: absolute;
+      right: 16px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px;
+
+      &:hover {
+        color: var(--text-primary);
+      }
+    }
+  }
+}
+
+.error-message {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--red-primary);
+  border-radius: var(--border-radius);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--red-primary);
+
+  .error-icon {
+    font-size: 20px;
+  }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0;
+  gap: 16px;
+
+  p {
+    color: var(--text-secondary);
+  }
+}
+
+.table-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.companies-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th, td {
+    padding: 16px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  thead {
+    background: var(--bg-secondary);
+
+    th {
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+
+      &.sortable {
+        cursor: pointer;
+        user-select: none;
+
+        &:hover {
+          color: var(--purple-primary);
+        }
+      }
+
+      .sort-icon {
+        margin-left: 6px;
+        font-size: 10px;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: var(--bg-hover);
+      }
+
+      &:last-child td {
+        border-bottom: none;
+      }
+    }
+  }
+
+  .company-name {
+    .name-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+
+      .name {
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      .verified-badge {
+        background: var(--purple-primary);
+        color: white;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+      }
+    }
+
+    .email {
+      font-size: 13px;
+      color: var(--text-secondary);
+
+      &:hover {
+        color: var(--purple-primary);
+      }
+    }
+  }
+
+  .phone {
+    color: var(--text-primary);
+
+    &:hover {
+      color: var(--purple-primary);
+    }
+  }
+
+  .categories-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .category-tag {
+    background: var(--purple-light);
+    color: var(--purple-primary);
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .source-badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .no-results {
+    text-align: center;
+    padding: 60px 20px;
+
+    .no-results-icon {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    p {
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+  }
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 32px;
+
+  .page-btn {
+    padding: 10px 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    font-weight: 500;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--purple-primary);
+      color: var(--purple-primary);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .page-numbers {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+
+    .page-num {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-weight: 500;
+      cursor: pointer;
+
+      &:hover:not(.active) {
+        border-color: var(--purple-primary);
+      }
+
+      &.active {
+        background: var(--purple-primary);
+        border-color: var(--purple-primary);
+        color: white;
+      }
+    }
+
+    .ellipsis {
+      color: var(--text-muted);
+      padding: 0 4px;
+    }
+  }
+}
+
+.page-info {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+// Responsive
+@media (max-width: 1024px) {
+  .companies-table {
+    th, td {
+      padding: 12px 14px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 16px;
+
+    .total-count {
+      text-align: left;
+    }
+  }
+
+  .search-section {
+    flex-direction: column;
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .companies-table {
+    min-width: 800px;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+  }
+}

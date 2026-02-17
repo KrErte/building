@@ -40,6 +40,9 @@ dependencies {
     // JSON processing
     implementation 'com.fasterxml.jackson.core:jackson-databind'
 
+    // HTML parsing for website crawling
+    implementation 'org.jsoup:jsoup:1.17.2'
+
     // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

@@ -1,0 +1,212 @@
+:root {
+  --bg-primary: #0f0f0f;
+  --bg-secondary: #1a1a1a;
+  --bg-card: #242424;
+  --bg-hover: #2a2a2a;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --text-muted: #666666;
+  --purple-primary: #8b5cf6;
+  --purple-hover: #7c3aed;
+  --purple-light: rgba(139, 92, 246, 0.1);
+  --purple-glow: rgba(139, 92, 246, 0.3);
+  --green-primary: #22c55e;
+  --red-primary: #ef4444;
+  --border-color: #333333;
+  --border-radius: 12px;
+  --transition: all 0.2s ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+a {
+  color: var(--purple-primary);
+  text-decoration: none;
+  transition: var(--transition);
+
+  &:hover {
+    color: var(--purple-hover);
+  }
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+  outline: none;
+  transition: var(--transition);
+}
+
+input, textarea, select {
+  font-family: inherit;
+  outline: none;
+  transition: var(--transition);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+// Button styles
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  font-size: 14px;
+  transition: var(--transition);
+
+  &-primary {
+    background: var(--purple-primary);
+    color: white;
+
+    &:hover:not(:disabled) {
+      background: var(--purple-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px var(--purple-glow);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &-secondary {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+
+    &:hover {
+      background: var(--bg-hover);
+      border-color: var(--purple-primary);
+    }
+  }
+
+  &-lg {
+    padding: 16px 32px;
+    font-size: 16px;
+  }
+}
+
+// Card styles
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: 24px;
+  transition: var(--transition);
+
+  &:hover {
+    border-color: var(--purple-primary);
+  }
+}
+
+// Form styles
+.form-group {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  input, textarea, select {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    font-size: 14px;
+
+    &:focus {
+      border-color: var(--purple-primary);
+      box-shadow: 0 0 0 3px var(--purple-light);
+    }
+
+    &::placeholder {
+      color: var(--text-muted);
+    }
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 120px;
+  }
+}
+
+// Loading spinner
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--purple-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Badge styles
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+
+  &-purple {
+    background: var(--purple-light);
+    color: var(--purple-primary);
+  }
+
+  &-green {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--green-primary);
+  }
+
+  &-red {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--red-primary);
+  }
+}
+
+// Price bar
+.price-bar {
+  height: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+
+  .price-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--purple-primary), var(--purple-hover));
+    border-radius: 4px;
+  }
+}
