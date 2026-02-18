@@ -94,11 +94,6 @@ public class ProjectController {
         }
     }
 
-    @GetMapping("/health")
-    public ResponseEntity<?> health() {
-        return ResponseEntity.ok(Map.of("status", "ok"));
-    }
-
     private User getUser(UserPrincipal principal) {
         return userRepository.findById(principal.getId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
