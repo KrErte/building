@@ -4,6 +4,7 @@ import com.buildquote.dto.CompanyDto;
 import com.buildquote.dto.CompanyPageResponse;
 import com.buildquote.entity.Supplier;
 import com.buildquote.repository.SupplierRepository;
+import jakarta.annotation.PostConstruct;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ public class CompanyService {
     private final SupplierRepository supplierRepository;
     private final SupplierSearchService supplierSearchService;
     private final JdbcTemplate jdbcTemplate;
+    private volatile boolean crawlerSchemaExists = false;
 
     public CompanyService(SupplierRepository supplierRepository, SupplierSearchService supplierSearchService, JdbcTemplate jdbcTemplate) {
         this.supplierRepository = supplierRepository;
@@ -30,12 +32,67 @@ public class CompanyService {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    @PostConstruct
+    public void init() {
+        checkCrawlerSchema();
+    }
+
+    private void checkCrawlerSchema() {
+        try {
+            Boolean exists = jdbcTemplate.queryForObject(
+                "SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = 'crawler')",
+                Boolean.class);
+            crawlerSchemaExists = Boolean.TRUE.equals(exists);
+        } catch (Exception e) {
+            crawlerSchemaExists = false;
+        }
+    }
+
     public CompanyPageResponse getCompanies(int page, int size, String search, String sortBy, String sortDir) {
         return getCompanies(page, size, search, sortBy, sortDir, null, null);
     }
 
     public CompanyPageResponse getCompanies(int page, int size, String search, String sortBy, String sortDir, String category, String city) {
-        // Use combined query from both suppliers and crawler.company
+        // Try combined query first if crawler schema exists, otherwise use suppliers only
+        if (crawlerSchemaExists) {
+            try {
+                return getCompaniesFromCombinedQuery(page, size, search, sortBy, sortDir, category, city);
+            } catch (Exception e) {
+                System.err.println("CompanyService combined query failed, falling back to suppliers only: " + e.getMessage());
+                // Re-check schema availability for future requests
+                checkCrawlerSchema();
+            }
+        }
+
+        // Fallback: query suppliers table only via JPA
+        return getCompaniesFromSuppliers(page, size, search, sortBy, sortDir);
+    }
+
+    private CompanyPageResponse getCompaniesFromSuppliers(int page, int size, String search, String sortBy, String sortDir) {
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        String sortField = mapSortField(sortBy);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
+        Page<Supplier> supplierPage = supplierRepository.searchCompanies(search, pageable);
+
+        List<CompanyDto> companies = supplierPage.getContent().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+        long totalElements = supplierPage.getTotalElements();
+
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+
+        return CompanyPageResponse.builder()
+                .companies(companies)
+                .page(page)
+                .size(size)
+                .totalElements(totalElements)
+                .totalPages(totalPages)
+                .hasNext(page < totalPages - 1)
+                .hasPrevious(page > 0)
+                .build();
+    }
+
+    private CompanyPageResponse getCompaniesFromCombinedQuery(int page, int size, String search, String sortBy, String sortDir, String category, String city) {
         String searchPattern = (search != null && !search.isBlank()) ? "%" + search.toLowerCase() + "%" : null;
         String categoryPattern = (category != null && !category.isBlank()) ? "%" + category + "%" : null;
         String cityPattern = (city != null && !city.isBlank()) ? "%" + city.toLowerCase() + "%" : null;
@@ -43,36 +100,14 @@ public class CompanyService {
 
         String sql = buildCombinedQuery(searchPattern, categoryPattern, cityPattern, sortBy, sortDir, size, offset);
         String countSql = buildCountQuery(searchPattern, categoryPattern, cityPattern);
+        List<Object> params = buildQueryParams(searchPattern, categoryPattern, cityPattern);
 
+        long totalElements = jdbcTemplate.queryForObject(countSql, Long.class, params.toArray());
+
+        List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, params.toArray());
         List<CompanyDto> companies = new ArrayList<>();
-        long totalElements = 0;
-
-        try {
-            // Build parameters list
-            List<Object> params = buildQueryParams(searchPattern, categoryPattern, cityPattern);
-
-            // Get total count
-            totalElements = jdbcTemplate.queryForObject(countSql, Long.class, params.toArray());
-
-            // Get paginated results
-            List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, params.toArray());
-
-            for (Map<String, Object> row : rows) {
-                companies.add(mapRowToDto(row));
-            }
-        } catch (Exception e) {
-            // Fallback to suppliers only
-            System.err.println("CompanyService combined query failed: " + e.getMessage());
-            e.printStackTrace();
-            Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
-            String sortField = mapSortField(sortBy);
-            Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortField));
-            Page<Supplier> supplierPage = supplierRepository.searchCompanies(search, pageable);
-
-            companies = supplierPage.getContent().stream()
-                    .map(this::toDto)
-                    .collect(Collectors.toList());
-            totalElements = supplierPage.getTotalElements();
+        for (Map<String, Object> row : rows) {
+            companies.add(mapRowToDto(row));
         }
 
         int totalPages = (int) Math.ceil((double) totalElements / size);
