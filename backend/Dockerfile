@@ -1,12 +1,12 @@
 # Stage 1: Download dependencies (cached when build.gradle unchanged)
-FROM gradle:8.5-jdk21 AS deps
+FROM gradle:8.5-jdk17 AS deps
 WORKDIR /app
 COPY build.gradle settings.gradle ./
 RUN gradle dependencies --no-daemon --refresh-dependencies || true
 RUN gradle compileJava --no-daemon || true
 
 # Stage 2: Build application
-FROM gradle:8.5-jdk21 AS build
+FROM gradle:8.5-jdk17 AS build
 WORKDIR /app
 # Copy cached gradle home from deps stage
 COPY --from=deps /home/gradle/.gradle /home/gradle/.gradle
@@ -24,7 +24,7 @@ WORKDIR /libredwg
 RUN sh autogen.sh && ./configure --prefix=/usr/local && make -j$(nproc) && make install
 
 # Stage 4: Final runtime
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
