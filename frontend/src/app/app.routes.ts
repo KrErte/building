@@ -94,5 +94,15 @@ export const routes: Routes = [
     path: 'about',
     loadComponent: () => import('./pages/about/about.component')
       .then(m => m.AboutComponent)
+  },
+  {
+    path: 'careers',
+    loadComponent: () => import('./pages/careers/careers.component')
+      .then(m => m.CareersComponent)
+  },
+  {
+    path: 'forgot-password',
+    loadComponent: () => import('./pages/forgot-password/forgot-password.component')
+      .then(m => m.ForgotPasswordComponent)
   }
 ];

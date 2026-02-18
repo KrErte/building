@@ -137,7 +137,7 @@
     "SUBTITLE": "Võimsad tööriistad ehitushangeteks",
     "NEW": "UUS",
     "F1_TITLE": "Tarnijate andmebaas",
-    "F1_DESC": "Üle 500 kontrollitud ehitusettevõtte kogu Eestis. Otsing kategooria ja asukoha järgi.",
+    "F1_DESC": "Tuhandeid kontrollitud ehitusettevõtteid kogu Eestis. Otsing kategooria ja asukoha järgi.",
     "F2_TITLE": "Hinnapäringute mallid",
     "F2_DESC": "Professionaalsed mallid, mis sisaldavad kõiki olulisi detaile. Saada päringud ühe klikiga.",
     "F3_TITLE": "Pakkumiste võrdlus",
@@ -202,7 +202,7 @@
   },
   "CTA": {
     "TITLE": "Valmis alustama?",
-    "SUBTITLE": "Liitu üle 500 ehitusettevõttega, kes juba kasutavad BuildQuote'd.",
+    "SUBTITLE": "Liitu tuhandete ehitusettevõtetega, kes juba kasutavad BuildQuote'd.",
     "START": "Alusta tasuta",
     "TALK": "Räägi meiega"
   },
@@ -212,6 +212,7 @@
     "COMPANY": "Ettevõte",
     "LEGAL": "Õiguslik",
     "ABOUT": "Meist",
+    "CAREERS": "Karjäär",
     "CONTACT": "Kontakt",
     "PRIVACY": "Privaatsuspoliitika",
     "TERMS": "Kasutustingimused",
@@ -289,6 +290,36 @@
     "RETENTION_TEXT": "Säilitame teie andmeid seni, kuni teil on aktiivne konto. Pärast konto sulgemist kustutame teie isikuandmed 30 päeva jooksul, välja arvatud juhul, kui meil on seaduslik kohustus neid kauem säilitada.",
     "CONTACT_TITLE": "7. Kontakt",
     "CONTACT_TEXT": "Andmekaitseküsimuste korral võtke meiega ühendust aadressil kristo.erte@gmail.com. BuildQuote OÜ, Eesti. Teil on õigus esitada kaebus Andmekaitse Inspektsioonile (www.aki.ee)."
+  },
+  "FORGOT": {
+    "TITLE": "Unustasid parooli?",
+    "SUBTITLE": "Sisesta oma e-posti aadress ja saadame sulle parooli taastamise lingi.",
+    "SUBMIT": "Saada taastamislink",
+    "SENDING": "Saadan...",
+    "SUCCESS_TITLE": "E-kiri saadetud!",
+    "SUCCESS_TEXT": "Kui see e-posti aadress on meie süsteemis, saadame sinna parooli taastamise lingi. Kontrolli oma postkasti.",
+    "BACK_LOGIN": "Tagasi sisselogimisse",
+    "REMEMBER": "Meenus parool?"
+  },
+  "CAREERS": {
+    "BACK": "Tagasi avalehele",
+    "TITLE": "Karjäär",
+    "SUBTITLE": "Ehitame tuleviku ehitushangete platvormi. Tule meile appi!",
+    "WHY_TITLE": "Miks BuildQuote?",
+    "WHY_TEXT": "Oleme kiiresti kasvav startup, mis muudab ehitussektori hangete protsessi. Meie meeskond on väike, aga ambitsioonikas — iga liige mõjutab otse toodet ja ettevõtte tulevikku. Töötame kaasaegsete tehnoloogiatega (Angular, Spring Boot, AI/ML) ja lahendame päris probleeme.",
+    "CULTURE_TITLE": "Meie kultuur",
+    "PERK_1_TITLE": "Kaugtöö",
+    "PERK_1_DESC": "Tööta kust iganes soovid. Meie meeskond on hajutatud üle Eesti.",
+    "PERK_2_TITLE": "Startup tempo",
+    "PERK_2_DESC": "Kiire areng, suur mõju. Sinu töö jõuab päriselt kasutajateni.",
+    "PERK_3_TITLE": "Arenguvõimalused",
+    "PERK_3_DESC": "Koolitused, konverentsid ja õppimise tugi. Kasvame koos.",
+    "PERK_4_TITLE": "Konkurentsivõimeline palk",
+    "PERK_4_DESC": "Aus ja läbipaistev tasustamine + osalus ettevõttes.",
+    "OPENINGS_TITLE": "Avatud positsioonid",
+    "NO_OPENINGS": "Hetkel ei ole avatud positsioone. Saada meile oma CV ja me võtame ühendust, kui mõni koht avaneb!",
+    "CONTACT_TITLE": "Huvitatud?",
+    "CONTACT_TEXT": "Saada meile oma CV ja lühike tutvustus."
   },
   "ABOUT": {
     "BACK": "Tagasi avalehele",

@@ -137,7 +137,7 @@
     "SUBTITLE": "Powerful tools for construction procurement",
     "NEW": "NEW",
     "F1_TITLE": "Supplier database",
-    "F1_DESC": "Over 500 verified construction companies across Estonia. Search by category and location.",
+    "F1_DESC": "Thousands of verified construction companies across Estonia. Search by category and location.",
     "F2_TITLE": "RFQ templates",
     "F2_DESC": "Professional templates with all important details. Send requests with one click.",
     "F3_TITLE": "Quote comparison",
@@ -202,7 +202,7 @@
   },
   "CTA": {
     "TITLE": "Ready to start?",
-    "SUBTITLE": "Join over 500 construction companies already using BuildQuote.",
+    "SUBTITLE": "Join thousands of construction companies already using BuildQuote.",
     "START": "Start free",
     "TALK": "Talk to us"
   },
@@ -212,6 +212,7 @@
     "COMPANY": "Company",
     "LEGAL": "Legal",
     "ABOUT": "About us",
+    "CAREERS": "Careers",
     "CONTACT": "Contact",
     "PRIVACY": "Privacy policy",
     "TERMS": "Terms of service",
@@ -289,6 +290,36 @@
     "RETENTION_TEXT": "We retain your data as long as you have an active account. After account closure, we delete your personal data within 30 days, unless we have a legal obligation to retain it longer.",
     "CONTACT_TITLE": "7. Contact",
     "CONTACT_TEXT": "For data protection questions, contact us at kristo.erte@gmail.com. BuildQuote OÜ, Estonia. You have the right to file a complaint with the Estonian Data Protection Inspectorate (www.aki.ee)."
+  },
+  "FORGOT": {
+    "TITLE": "Forgot password?",
+    "SUBTITLE": "Enter your email address and we'll send you a password reset link.",
+    "SUBMIT": "Send reset link",
+    "SENDING": "Sending...",
+    "SUCCESS_TITLE": "Email sent!",
+    "SUCCESS_TEXT": "If this email address is in our system, we've sent a password reset link. Check your inbox.",
+    "BACK_LOGIN": "Back to login",
+    "REMEMBER": "Remember your password?"
+  },
+  "CAREERS": {
+    "BACK": "Back to home",
+    "TITLE": "Careers",
+    "SUBTITLE": "We're building the future of construction procurement. Come join us!",
+    "WHY_TITLE": "Why BuildQuote?",
+    "WHY_TEXT": "We are a fast-growing startup transforming how the construction sector handles procurement. Our team is small but ambitious — every member directly impacts the product and the company's future. We work with modern technologies (Angular, Spring Boot, AI/ML) and solve real problems.",
+    "CULTURE_TITLE": "Our Culture",
+    "PERK_1_TITLE": "Remote work",
+    "PERK_1_DESC": "Work from anywhere. Our team is distributed across Estonia.",
+    "PERK_2_TITLE": "Startup pace",
+    "PERK_2_DESC": "Fast development, big impact. Your work reaches real users.",
+    "PERK_3_TITLE": "Growth opportunities",
+    "PERK_3_DESC": "Training, conferences, and learning support. We grow together.",
+    "PERK_4_TITLE": "Competitive salary",
+    "PERK_4_DESC": "Fair and transparent compensation + company equity.",
+    "OPENINGS_TITLE": "Open Positions",
+    "NO_OPENINGS": "No open positions at the moment. Send us your CV and we'll reach out when something opens up!",
+    "CONTACT_TITLE": "Interested?",
+    "CONTACT_TEXT": "Send us your CV and a short introduction."
   },
   "ABOUT": {
     "BACK": "Back to home",
