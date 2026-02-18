@@ -1,6 +1,7 @@
 package com.buildquote.controller;
 
 import com.buildquote.service.ContactCrawlerService;
+import com.buildquote.service.ContactEnrichmentService;
 import com.buildquote.service.WebsiteCrawlerService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,11 +15,14 @@ public class CrawlerController {
 
     private final ContactCrawlerService contactCrawlerService;
     private final WebsiteCrawlerService websiteCrawlerService;
+    private final ContactEnrichmentService contactEnrichmentService;
 
     public CrawlerController(ContactCrawlerService contactCrawlerService,
-                            WebsiteCrawlerService websiteCrawlerService) {
+                            WebsiteCrawlerService websiteCrawlerService,
+                            ContactEnrichmentService contactEnrichmentService) {
         this.contactCrawlerService = contactCrawlerService;
         this.websiteCrawlerService = websiteCrawlerService;
+        this.contactEnrichmentService = contactEnrichmentService;
     }
 
     // Google Places crawler (costs money)
@@ -59,12 +63,32 @@ public class CrawlerController {
         return ResponseEntity.ok(Map.of("message", "Website crawler stop requested"));
     }
 
+    // Combined enrichment (Google Places + website scraping)
+    @GetMapping("/enrichment/status")
+    public ResponseEntity<Map<String, Object>> getEnrichmentStatus() {
+        return ResponseEntity.ok(contactEnrichmentService.getStatus());
+    }
+
+    @PostMapping("/enrichment/start")
+    public ResponseEntity<Map<String, String>> startEnrichment(
+            @RequestParam(defaultValue = "100") int limit) {
+        String result = contactEnrichmentService.startEnrichment(limit);
+        return ResponseEntity.ok(Map.of("message", result));
+    }
+
+    @PostMapping("/enrichment/stop")
+    public ResponseEntity<Map<String, String>> stopEnrichment() {
+        contactEnrichmentService.stopEnrichment();
+        return ResponseEntity.ok(Map.of("message", "Enrichment stop requested"));
+    }
+
     // Combined status
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getCombinedStatus() {
         return ResponseEntity.ok(Map.of(
             "google", contactCrawlerService.getStatus(),
-            "website", websiteCrawlerService.getStatus()
+            "website", websiteCrawlerService.getStatus(),
+            "enrichment", contactEnrichmentService.getStatus()
         ));
     }
 }

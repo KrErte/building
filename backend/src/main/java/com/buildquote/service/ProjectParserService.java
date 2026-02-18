@@ -1012,6 +1012,22 @@ public class ProjectParserService {
         }
     }
 
+    // Maximum reasonable per-unit prices (€/m²) by category to prevent unrealistic estimates
+    private static final Map<String, BigDecimal> MAX_UNIT_PRICE = Map.ofEntries(
+        Map.entry("TILING", new BigDecimal("55")),
+        Map.entry("ELECTRICAL", new BigDecimal("40")),
+        Map.entry("PLUMBING", new BigDecimal("50")),
+        Map.entry("FINISHING", new BigDecimal("25")),
+        Map.entry("FLOORING", new BigDecimal("35")),
+        Map.entry("DEMOLITION", new BigDecimal("30")),
+        Map.entry("ROOFING", new BigDecimal("70")),
+        Map.entry("HVAC", new BigDecimal("60")),
+        Map.entry("WINDOWS_DOORS", new BigDecimal("200")),
+        Map.entry("FACADE", new BigDecimal("60")),
+        Map.entry("GENERAL_CONSTRUCTION", new BigDecimal("50")),
+        Map.entry("LANDSCAPING", new BigDecimal("40"))
+    );
+
     private void enrichWithMarketPrices(ProjectStageDto stage, String location) {
         Optional<MarketPrice> priceOpt = marketPriceRepository.findByCategoryAndRegion(
             stage.getCategory(), location
@@ -1038,6 +1054,42 @@ public class ProjectParserService {
         } else {
             // Default fallback prices per category
             setDefaultPrices(stage);
+        }
+
+        // Validate and clamp prices to reasonable per-unit limits
+        validateAndClampPrices(stage);
+    }
+
+    private void validateAndClampPrices(ProjectStageDto stage) {
+        BigDecimal qty = stage.getQuantity();
+        if (qty == null || qty.compareTo(BigDecimal.ZERO) <= 0) return;
+
+        BigDecimal maxPerUnit = MAX_UNIT_PRICE.getOrDefault(stage.getCategory(), new BigDecimal("50"));
+        BigDecimal maxTotal = maxPerUnit.multiply(qty);
+
+        if (stage.getPriceEstimateMax() != null && stage.getPriceEstimateMax().compareTo(maxTotal) > 0) {
+            BigDecimal perUnit = stage.getPriceEstimateMax().divide(qty, 2, java.math.RoundingMode.HALF_UP);
+            log.warn("Price estimate too high for category={}, qty={}: €{}/unit (max €{}/unit). Clamping.",
+                stage.getCategory(), qty, perUnit, maxPerUnit);
+            stage.setPriceEstimateMax(maxTotal);
+        }
+
+        if (stage.getPriceEstimateMin() != null && stage.getPriceEstimateMin().compareTo(maxTotal) > 0) {
+            stage.setPriceEstimateMin(maxTotal);
+        }
+
+        if (stage.getPriceEstimateMedian() != null && stage.getPriceEstimateMedian().compareTo(maxTotal) > 0) {
+            stage.setPriceEstimateMedian(maxTotal);
+        }
+
+        // Ensure min <= median <= max
+        if (stage.getPriceEstimateMin() != null && stage.getPriceEstimateMax() != null
+                && stage.getPriceEstimateMin().compareTo(stage.getPriceEstimateMax()) > 0) {
+            stage.setPriceEstimateMin(stage.getPriceEstimateMax());
+        }
+        if (stage.getPriceEstimateMedian() != null && stage.getPriceEstimateMax() != null
+                && stage.getPriceEstimateMedian().compareTo(stage.getPriceEstimateMax()) > 0) {
+            stage.setPriceEstimateMedian(stage.getPriceEstimateMax());
         }
     }
 

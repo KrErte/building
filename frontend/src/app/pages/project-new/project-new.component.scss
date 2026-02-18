@@ -1134,6 +1134,20 @@
     font-weight: 700;
     color: var(--text-primary);
     margin-bottom: 6px;
+
+    .estimate-badge {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 2px 8px;
+      background: rgba(250, 204, 21, 0.15);
+      color: #facc15;
+      font-size: 10px;
+      font-weight: 600;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      vertical-align: middle;
+    }
   }
 }
 

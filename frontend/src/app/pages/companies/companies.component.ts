@@ -1,6 +1,7 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { CompanyService } from '../../services/company.service';
 import { Company, CompanyPageResponse, SOURCE_LABELS, SOURCE_COLORS, CATEGORY_LABELS } from '../../models/company.model';
 
@@ -32,10 +33,21 @@ export class CompaniesComponent implements OnInit {
   sourceLabels = SOURCE_LABELS;
   sourceColors = SOURCE_COLORS;
 
-  constructor(private companyService: CompanyService) {}
+  constructor(
+    private companyService: CompanyService,
+    private route: ActivatedRoute
+  ) {}
 
   ngOnInit(): void {
-    this.loadCompanies();
+    // Read search query from URL params (from header search)
+    this.route.queryParams.subscribe(params => {
+      const search = params['search'] || '';
+      if (search !== this.searchQuery()) {
+        this.searchQuery.set(search);
+        this.currentPage.set(0);
+      }
+      this.loadCompanies();
+    });
   }
 
   loadCompanies(): void {

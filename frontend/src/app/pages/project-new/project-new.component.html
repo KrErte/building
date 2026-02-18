@@ -291,6 +291,7 @@
                 <div class="stage-right">
                   <div class="stage-price">
                     {{ formatCurrency(stage.priceEstimateMin) }} — {{ formatCurrency(stage.priceEstimateMax) }}
+                    <span class="estimate-badge" *ngIf="stage.priceEstimateMin && stage.priceEstimateMax">hinnanguline</span>
                   </div>
                   <div class="supplier-count">
                     <span class="supplier-badge">

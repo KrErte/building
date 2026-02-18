@@ -72,7 +72,8 @@ import { AuthService } from './services/auth.service';
               }
             </div>
 
-            <!-- Notifications -->
+            <!-- Notifications hidden until feature is implemented -->
+            <!--
             <button class="icon-btn" (click)="toggleNotifications()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -82,6 +83,7 @@ import { AuthService } from './services/auth.service';
                 <span class="notification-dot"></span>
               }
             </button>
+            -->
 
             <!-- User Menu -->
             <div class="user-menu-wrapper">
@@ -115,6 +117,8 @@ import { AuthService } from './services/auth.service';
                     </svg>
                     <span>Seaded</span>
                   </a>
+                  <!-- Language selector hidden until i18n is fully implemented -->
+                  <!--
                   <div class="dropdown-item lang-selector" (click)="$event.stopPropagation()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <circle cx="12" cy="12" r="10"/>
@@ -134,6 +138,7 @@ import { AuthService } from './services/auth.service';
                       }
                     </div>
                   </div>
+                  -->
                   <div class="dropdown-divider"></div>
                   <button class="dropdown-item logout" (click)="logout()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

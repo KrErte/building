@@ -56,7 +56,6 @@
                 {{ sortDir() === 'asc' ? '&#9650;' : '&#9660;' }}
               </span>
             </th>
-            <th>Kontakt</th>
             <th>Telefon</th>
             <th>Kategooriad</th>
             <th class="sortable" (click)="onSort('city')">
@@ -80,9 +79,7 @@
                 <span class="name">{{ company.companyName }}</span>
                 <span class="verified-badge" *ngIf="company.isVerified" title="Verified">&#10003;</span>
               </div>
-              <a *ngIf="company.email" class="email">{{ company.email }}</a>
             </td>
-            <td>{{ company.contactPerson || '-' }}</td>
             <td>
               <a *ngIf="company.phone" [href]="'tel:' + company.phone" class="phone">
                 {{ company.phone }}
@@ -109,7 +106,7 @@
             </td>
           </tr>
           <tr *ngIf="companies().length === 0">
-            <td colspan="6" class="no-results">
+            <td colspan="5" class="no-results">
               <span class="no-results-icon">&#128269;</span>
               <p>Ettevotteid ei leitud</p>
               <button class="btn btn-secondary" (click)="clearSearch()" *ngIf="searchQuery()">

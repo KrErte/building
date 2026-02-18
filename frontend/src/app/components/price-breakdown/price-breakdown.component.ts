@@ -31,8 +31,17 @@ import { PriceBreakdown, MaterialLine, SupplierPrice } from '../../models/price-
       </div>
     }
 
+    <!-- No Data State -->
+    @if (!loading() && breakdown() && !hasBreakdownData()) {
+      <div class="breakdown-empty">
+        <span class="empty-icon">📋</span>
+        <p class="empty-text">Detailne hinnajaotus pole praegu saadaval.</p>
+        <p class="empty-hint">Turuhinna hinnang on toodud etapi kaardil.</p>
+      </div>
+    }
+
     <!-- Breakdown Content -->
-    @if (!loading() && breakdown()) {
+    @if (!loading() && breakdown() && hasBreakdownData()) {
       <div class="price-breakdown" [@fadeIn]>
         <!-- Materials Section -->
         <div class="breakdown-section">
@@ -166,7 +175,11 @@ import { PriceBreakdown, MaterialLine, SupplierPrice } from '../../models/price-
             </h4>
             <div class="confidence-indicator" [class]="getConfidenceClass()">
               <span class="confidence-dot"></span>
-              TÄPSUS: {{ breakdown()!.confidencePercent }}%
+              @if (breakdown()!.confidencePercent < 50) {
+                HINNANGULINE
+              } @else {
+                TÄPSUS: {{ breakdown()!.confidencePercent }}%
+              }
               <span class="confidence-label">{{ breakdown()!.confidenceLabel }}</span>
             </div>
           </div>
@@ -255,6 +268,32 @@ import { PriceBreakdown, MaterialLine, SupplierPrice } from '../../models/price-
     }
   `,
   styles: [`
+    .breakdown-empty {
+      padding: 1.5rem 0 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 1rem;
+      text-align: center;
+      padding-bottom: 1rem;
+    }
+
+    .empty-icon {
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 0.5rem;
+      opacity: 0.6;
+    }
+
+    .empty-text {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.9rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .empty-hint {
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.8rem;
+    }
+
     .price-breakdown {
       padding: 1.5rem 0 0;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -929,6 +968,13 @@ export class PriceBreakdownComponent implements OnInit, OnChanges {
       min: materials.min + bd.labor.totalMin + bd.otherCosts.totalMin,
       max: materials.max + bd.labor.totalMax + bd.otherCosts.totalMax
     };
+  }
+
+  hasBreakdownData(): boolean {
+    const bd = this.breakdown();
+    if (!bd) return false;
+    // Data is considered available if there are materials OR labor hours > 0
+    return bd.materials.length > 0 || bd.labor.hoursEstimate > 0;
   }
 
   getConfidenceClass(): string {
