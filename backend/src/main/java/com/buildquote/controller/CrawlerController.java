@@ -4,13 +4,14 @@ import com.buildquote.service.ContactCrawlerService;
 import com.buildquote.service.ContactEnrichmentService;
 import com.buildquote.service.WebsiteCrawlerService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/crawler")
-@CrossOrigin
+@Secured("ROLE_ADMIN")
 public class CrawlerController {
 
     private final ContactCrawlerService contactCrawlerService;

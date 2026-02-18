@@ -213,10 +213,9 @@
     "LEGAL": "Õiguslik",
     "ABOUT": "Meist",
     "CONTACT": "Kontakt",
-    "CAREERS": "Karjäär",
     "PRIVACY": "Privaatsuspoliitika",
     "TERMS": "Kasutustingimused",
-    "COPYRIGHT": "© 2024 BuildQuote OÜ. Kõik õigused kaitstud."
+    "COPYRIGHT": "© {{year}} BuildQuote OÜ. Kõik õigused kaitstud."
   },
   "AUTH": {
     "LOGIN_TITLE": "Tere tulemast tagasi",
@@ -252,5 +251,54 @@
     "ERROR_PASSWORDS_MATCH": "Paroolid peavad kattuma",
     "ERROR_PASSWORD_LENGTH": "Parool peab olema vähemalt 8 tähemärki",
     "ERROR_INVALID_EMAIL": "Palun sisesta kehtiv e-posti aadress"
+  },
+  "TERMS": {
+    "BACK": "Tagasi avalehele",
+    "TITLE": "Kasutustingimused",
+    "LAST_UPDATED": "Viimati uuendatud: veebruar 2026",
+    "INTRO_TITLE": "1. Sissejuhatus",
+    "INTRO_TEXT": "Tere tulemast BuildQuote'i! Need kasutustingimused reguleerivad teie juurdepääsu ja kasutust BuildQuote OÜ (\"meie\", \"me\") pakutavale AI-põhisele ehitushangete platvormile. Platvormi kasutamisega nõustute nende tingimustega.",
+    "USAGE_TITLE": "2. Kasutustingimused",
+    "USAGE_TEXT": "Platvorm on mõeldud ehitushangete haldamiseks, hinnapäringute saatmiseks ja pakkumiste võrdlemiseks. Te nõustute kasutama platvormi ainult seaduslikel eesmärkidel ja kooskõlas nende tingimustega. Te ei tohi kasutada platvormi viisil, mis võib kahjustada, keelata, koormata või kahjustada platvormi ega teisi kasutajaid.",
+    "ACCOUNTS_TITLE": "3. Kasutajakontod",
+    "ACCOUNTS_TEXT": "Konto loomiseks peate esitama täpse ja täieliku teabe. Olete vastutav oma konto turvalisuse eest, sealhulgas parooli konfidentsiaalsuse tagamise eest. Teavitage meid viivitamatult igasugusest volitamata juurdepääsust teie kontole.",
+    "LIABILITY_TITLE": "4. Vastutuse piirang",
+    "LIABILITY_TEXT": "BuildQuote pakub platvormi \"nagu on\" põhimõttel. Me ei garanteeri, et teenus on katkestusteta, turvaline või veavaba. Me ei vastuta kaudsete, juhuslike ega eriti karistuslike kahjude eest. Meie koguvastutus ei ületa summat, mille olete meile viimase 12 kuu jooksul maksnud.",
+    "DATA_TITLE": "5. Andmekaitse (GDPR)",
+    "DATA_TEXT": "Töötleme teie isikuandmeid kooskõlas Euroopa Liidu isikuandmete kaitse üldmäärusega (GDPR). Teil on õigus oma andmetele juurde pääseda, neid parandada, kustutada ja teisaldada. Üksikasjalikum teave on meie privaatsuspoliitikas. Andmetöötluse õiguslik alus on lepingu täitmine ja meie õigustatud huvi teenuse osutamisel.",
+    "CHANGES_TITLE": "6. Tingimuste muutmine",
+    "CHANGES_TEXT": "Jätame endale õiguse neid tingimusi igal ajal muuta. Olulistest muudatustest teavitame teid e-posti teel vähemalt 30 päeva ette. Platvormi jätkuv kasutamine pärast muudatuste jõustumist tähendab teie nõusolekut uute tingimustega.",
+    "CONTACT_TITLE": "7. Kontakt",
+    "CONTACT_TEXT": "Küsimuste korral võtke meiega ühendust aadressil kristo.erte@gmail.com. BuildQuote OÜ, Eesti."
+  },
+  "PRIVACY": {
+    "BACK": "Tagasi avalehele",
+    "TITLE": "Privaatsuspoliitika",
+    "LAST_UPDATED": "Viimati uuendatud: veebruar 2026",
+    "COLLECTION_TITLE": "1. Andmete kogumine",
+    "COLLECTION_TEXT": "Kogume andmeid, mida te meile otse edastate (nimi, e-post, ettevõte, telefon), ning andmeid, mis tekivad platvormi kasutamisel (projektide info, hinnapäringud, pakkumised). Kogume ka tehnilisi andmeid nagu IP-aadress, brauseri tüüp ja külastusstatistika.",
+    "PURPOSE_TITLE": "2. Andmete töötlemise eesmärgid",
+    "PURPOSE_TEXT": "Kasutame teie andmeid teenuse osutamiseks ja parandamiseks, hinnapäringute saatmiseks ja haldamiseks, teie kontoga seotud suhtluseks ning platvormi turvalisuse tagamiseks. Andmeid ei kasutata automatiseeritud otsuste tegemiseks ilma teie nõusolekuta.",
+    "RIGHTS_TITLE": "3. Teie õigused (GDPR)",
+    "RIGHTS_TEXT": "Teil on õigus: oma andmetele juurde pääseda ja nendest koopiat saada; andmeid parandada; andmeid kustutada (\"õigus olla unustatud\"); andmete töötlemist piirata; andmeid teisaldada; esitada vastuväide andmete töötlemisele; loobuda nõusolekust. Õiguste teostamiseks saatke kiri aadressile kristo.erte@gmail.com.",
+    "COOKIES_TITLE": "4. Küpsised",
+    "COOKIES_TEXT": "Kasutame vajalikke küpsiseid platvormi toimimiseks (sessioon, keele-eelistus). Analüütilisi küpsiseid kasutame ainult teie nõusolekul. Saate küpsiste seadeid muuta oma brauseri seadetest.",
+    "SHARING_TITLE": "5. Andmete jagamine",
+    "SHARING_TEXT": "Jagame teie projektide andmeid ainult tarnijatega, kellele te hinnapäringuid saadate. Me ei müü ega jaga teie isikuandmeid kolmandate osapooltega turunduse eesmärgil. Andmeid võidakse jagada õiguskaitseorganitega seadusest tuleneva kohustuse korral.",
+    "RETENTION_TITLE": "6. Andmete säilitamine",
+    "RETENTION_TEXT": "Säilitame teie andmeid seni, kuni teil on aktiivne konto. Pärast konto sulgemist kustutame teie isikuandmed 30 päeva jooksul, välja arvatud juhul, kui meil on seaduslik kohustus neid kauem säilitada.",
+    "CONTACT_TITLE": "7. Kontakt",
+    "CONTACT_TEXT": "Andmekaitseküsimuste korral võtke meiega ühendust aadressil kristo.erte@gmail.com. BuildQuote OÜ, Eesti. Teil on õigus esitada kaebus Andmekaitse Inspektsioonile (www.aki.ee)."
+  },
+  "ABOUT": {
+    "BACK": "Tagasi avalehele",
+    "TITLE": "Meist",
+    "SUBTITLE": "Ehitame tuleviku ehitushangete platvormi.",
+    "MISSION_TITLE": "Meie missioon",
+    "MISSION_TEXT": "BuildQuote loodi eesmärgiga muuta ehitushangete protsess lihtsamaks ja läbipaistvamaks. Usume, et tehnoloogia ja AI abil saame aidata ehitusettevõtetel leida parimad tegijad, säästa aega ja teha targemaid otsuseid. Meie platvorm ühendab tellijad tarnijatega, automatiseerib hinnapäringute protsessi ja pakub turuhindu kontrollimiseks.",
+    "TEAM_TITLE": "Meie meeskond",
+    "TEAM_TEXT": "Oleme väike ja kirglik meeskond Eestist, kes ühendab ehituse ja tehnoloogia kogemuse. Meie eesmärk on luua tööriist, mida me ise soovisime ehitusprojekte hallates.",
+    "CONTACT_TITLE": "Võta ühendust",
+    "CONTACT_TEXT": "Meil on alati hea meel kuulda tagasisidet, ettepanekuid ja küsimusi."
   }
 }

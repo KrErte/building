@@ -16,7 +16,8 @@ export const routes: Routes = [
   {
     path: 'projects/new',
     loadComponent: () => import('./pages/project-new/project-new.component')
-      .then(m => m.ProjectNewComponent)
+      .then(m => m.ProjectNewComponent),
+    canActivate: [authGuard]
   },
   {
     path: 'projects/:id',
@@ -78,5 +79,20 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/settings/settings.component')
       .then(m => m.SettingsComponent),
     canActivate: [authGuard]
+  },
+  {
+    path: 'terms',
+    loadComponent: () => import('./pages/terms/terms.component')
+      .then(m => m.TermsComponent)
+  },
+  {
+    path: 'privacy',
+    loadComponent: () => import('./pages/privacy/privacy.component')
+      .then(m => m.PrivacyComponent)
+  },
+  {
+    path: 'about',
+    loadComponent: () => import('./pages/about/about.component')
+      .then(m => m.AboutComponent)
   }
 ];

@@ -213,10 +213,9 @@
     "LEGAL": "Legal",
     "ABOUT": "About us",
     "CONTACT": "Contact",
-    "CAREERS": "Careers",
     "PRIVACY": "Privacy policy",
     "TERMS": "Terms of service",
-    "COPYRIGHT": "© 2024 BuildQuote OÜ. All rights reserved."
+    "COPYRIGHT": "© {{year}} BuildQuote OÜ. All rights reserved."
   },
   "AUTH": {
     "LOGIN_TITLE": "Welcome back",
@@ -252,5 +251,54 @@
     "ERROR_PASSWORDS_MATCH": "Passwords must match",
     "ERROR_PASSWORD_LENGTH": "Password must be at least 8 characters",
     "ERROR_INVALID_EMAIL": "Please enter a valid email address"
+  },
+  "TERMS": {
+    "BACK": "Back to home",
+    "TITLE": "Terms of Service",
+    "LAST_UPDATED": "Last updated: February 2026",
+    "INTRO_TITLE": "1. Introduction",
+    "INTRO_TEXT": "Welcome to BuildQuote! These Terms of Service govern your access to and use of the AI-powered construction procurement platform provided by BuildQuote OÜ (\"we\", \"us\"). By using the platform, you agree to these terms.",
+    "USAGE_TITLE": "2. Usage Terms",
+    "USAGE_TEXT": "The platform is designed for managing construction procurement, sending RFQs, and comparing quotes. You agree to use the platform only for lawful purposes and in accordance with these terms. You may not use the platform in any way that could damage, disable, overburden, or impair the platform or other users.",
+    "ACCOUNTS_TITLE": "3. User Accounts",
+    "ACCOUNTS_TEXT": "To create an account, you must provide accurate and complete information. You are responsible for the security of your account, including maintaining the confidentiality of your password. Notify us immediately of any unauthorized access to your account.",
+    "LIABILITY_TITLE": "4. Limitation of Liability",
+    "LIABILITY_TEXT": "BuildQuote provides the platform on an \"as is\" basis. We do not guarantee that the service will be uninterrupted, secure, or error-free. We are not liable for indirect, incidental, or punitive damages. Our total liability shall not exceed the amount you have paid us in the last 12 months.",
+    "DATA_TITLE": "5. Data Protection (GDPR)",
+    "DATA_TEXT": "We process your personal data in accordance with the EU General Data Protection Regulation (GDPR). You have the right to access, rectify, delete, and port your data. More details are available in our Privacy Policy. The legal basis for data processing is contract performance and our legitimate interest in providing the service.",
+    "CHANGES_TITLE": "6. Changes to Terms",
+    "CHANGES_TEXT": "We reserve the right to modify these terms at any time. We will notify you of significant changes by email at least 30 days in advance. Continued use of the platform after changes take effect constitutes your agreement to the new terms.",
+    "CONTACT_TITLE": "7. Contact",
+    "CONTACT_TEXT": "For questions, contact us at kristo.erte@gmail.com. BuildQuote OÜ, Estonia."
+  },
+  "PRIVACY": {
+    "BACK": "Back to home",
+    "TITLE": "Privacy Policy",
+    "LAST_UPDATED": "Last updated: February 2026",
+    "COLLECTION_TITLE": "1. Data Collection",
+    "COLLECTION_TEXT": "We collect data you provide directly (name, email, company, phone) and data generated through platform usage (project information, RFQs, quotes). We also collect technical data such as IP address, browser type, and visit statistics.",
+    "PURPOSE_TITLE": "2. Processing Purposes",
+    "PURPOSE_TEXT": "We use your data to provide and improve the service, send and manage RFQs, communicate with you regarding your account, and ensure platform security. Data is not used for automated decision-making without your consent.",
+    "RIGHTS_TITLE": "3. Your Rights (GDPR)",
+    "RIGHTS_TEXT": "You have the right to: access your data and obtain a copy; rectify your data; delete your data (\"right to be forgotten\"); restrict data processing; port your data; object to data processing; withdraw consent. To exercise your rights, email kristo.erte@gmail.com.",
+    "COOKIES_TITLE": "4. Cookies",
+    "COOKIES_TEXT": "We use essential cookies for platform operation (session, language preference). Analytics cookies are used only with your consent. You can change cookie settings in your browser.",
+    "SHARING_TITLE": "5. Data Sharing",
+    "SHARING_TEXT": "We share your project data only with suppliers to whom you send RFQs. We do not sell or share your personal data with third parties for marketing purposes. Data may be shared with law enforcement authorities when required by law.",
+    "RETENTION_TITLE": "6. Data Retention",
+    "RETENTION_TEXT": "We retain your data as long as you have an active account. After account closure, we delete your personal data within 30 days, unless we have a legal obligation to retain it longer.",
+    "CONTACT_TITLE": "7. Contact",
+    "CONTACT_TEXT": "For data protection questions, contact us at kristo.erte@gmail.com. BuildQuote OÜ, Estonia. You have the right to file a complaint with the Estonian Data Protection Inspectorate (www.aki.ee)."
+  },
+  "ABOUT": {
+    "BACK": "Back to home",
+    "TITLE": "About Us",
+    "SUBTITLE": "Building the future of construction procurement.",
+    "MISSION_TITLE": "Our Mission",
+    "MISSION_TEXT": "BuildQuote was created to make the construction procurement process simpler and more transparent. We believe that with technology and AI, we can help construction companies find the best contractors, save time, and make smarter decisions. Our platform connects clients with suppliers, automates the RFQ process, and provides market price verification.",
+    "TEAM_TITLE": "Our Team",
+    "TEAM_TEXT": "We are a small and passionate team from Estonia that combines construction and technology experience. Our goal is to create the tool we wished we had when managing construction projects.",
+    "CONTACT_TITLE": "Get in Touch",
+    "CONTACT_TEXT": "We are always happy to hear feedback, suggestions, and questions."
   }
 }

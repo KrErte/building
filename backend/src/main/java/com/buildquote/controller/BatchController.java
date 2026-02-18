@@ -4,13 +4,13 @@ import com.buildquote.service.BatchHarvestService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/batch")
-@CrossOrigin(origins = "*")
 public class BatchController {
 
     private static final Logger log = LoggerFactory.getLogger(BatchController.class);
@@ -24,6 +24,7 @@ public class BatchController {
     /**
      * Run full harvest: Google Places + filtering + website scraping + deduplication
      */
+    @Secured("ROLE_ADMIN")
     @PostMapping("/harvest/full")
     public ResponseEntity<Map<String, Object>> runFullHarvest() {
         log.info("Starting FULL batch harvest (Google Places + scraping + dedup)...");
@@ -34,6 +35,7 @@ public class BatchController {
     /**
      * Run Google Places harvest only
      */
+    @Secured("ROLE_ADMIN")
     @PostMapping("/harvest/google")
     public ResponseEntity<Map<String, Object>> runGoogleHarvest() {
         log.info("Starting Google Places harvest...");
@@ -43,8 +45,8 @@ public class BatchController {
 
     /**
      * Run PARALLEL Google Places harvest - 6x faster!
-     * Searches all categories for each city in parallel.
      */
+    @Secured("ROLE_ADMIN")
     @PostMapping("/harvest/parallel")
     public ResponseEntity<Map<String, Object>> runParallelHarvest() {
         log.info("Starting PARALLEL Google Places harvest (6x faster)...");
@@ -55,6 +57,7 @@ public class BatchController {
     /**
      * Run email scraping only
      */
+    @Secured("ROLE_ADMIN")
     @PostMapping("/harvest/scrape-emails")
     public ResponseEntity<Map<String, Object>> runEmailScrape() {
         log.info("Starting email scraping...");
@@ -65,6 +68,7 @@ public class BatchController {
     /**
      * Run deduplication only
      */
+    @Secured("ROLE_ADMIN")
     @PostMapping("/harvest/deduplicate")
     public ResponseEntity<Map<String, Object>> runDeduplicate() {
         log.info("Starting deduplication...");
@@ -75,6 +79,7 @@ public class BatchController {
     /**
      * Legacy endpoint - calls full harvest
      */
+    @Secured("ROLE_ADMIN")
     @PostMapping("/harvest")
     public ResponseEntity<Map<String, Object>> runHarvest() {
         log.info("Starting batch supplier harvest...");
@@ -85,13 +90,14 @@ public class BatchController {
     /**
      * Get current status
      */
+    @Secured("ROLE_ADMIN")
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getStatus() {
         return ResponseEntity.ok(batchHarvestService.getStatus());
     }
 
     /**
-     * Get supplier statistics
+     * Get supplier statistics (public - used by landing page)
      */
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Object>> getStats() {

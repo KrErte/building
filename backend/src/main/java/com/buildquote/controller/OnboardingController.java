@@ -6,13 +6,13 @@ import com.buildquote.service.OnboardingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/onboard")
-@CrossOrigin(origins = "*")
 public class OnboardingController {
 
     private static final Logger log = LoggerFactory.getLogger(OnboardingController.class);
@@ -59,6 +59,7 @@ public class OnboardingController {
     /**
      * Generate onboarding tokens for all suppliers (admin endpoint)
      */
+    @Secured("ROLE_ADMIN")
     @PostMapping("/admin/generate-tokens")
     public ResponseEntity<Map<String, Object>> generateTokens() {
         log.info("Generating onboarding tokens for all suppliers...");
@@ -67,9 +68,8 @@ public class OnboardingController {
 
     /**
      * Send onboarding emails (admin endpoint)
-     * @param limit Maximum number of emails to send
-     * @param dryRun If true, don't actually send emails
      */
+    @Secured("ROLE_ADMIN")
     @PostMapping("/admin/send-emails")
     public ResponseEntity<Map<String, Object>> sendEmails(
             @RequestParam(defaultValue = "10") int limit,
@@ -81,16 +81,16 @@ public class OnboardingController {
     /**
      * Get onboarding campaign statistics (admin endpoint)
      */
+    @Secured("ROLE_ADMIN")
     @GetMapping("/admin/stats")
     public ResponseEntity<Map<String, Object>> getStats() {
         return ResponseEntity.ok(onboardingService.getOnboardingStats());
     }
 
     /**
-     * Mass send onboarding emails with dryRun support
-     * POST /api/onboard/mass-send
-     * Body: {"dryRun": true/false, "testEmail": "optional@email.com"}
+     * Mass send onboarding emails with dryRun support (admin endpoint)
      */
+    @Secured("ROLE_ADMIN")
     @PostMapping("/mass-send")
     public ResponseEntity<Map<String, Object>> massSend(@RequestBody Map<String, Object> request) {
         boolean dryRun = request.get("dryRun") != null && (Boolean) request.get("dryRun");
@@ -99,10 +99,8 @@ public class OnboardingController {
         log.info("Mass send request - dryRun: {}, testEmail: {}", dryRun, testEmail);
 
         if (testEmail != null && !testEmail.isEmpty()) {
-            // Test mode: send only to test email
             return ResponseEntity.ok(onboardingService.sendTestEmail(testEmail));
         } else {
-            // Normal mode with rate limiting (10/min)
             return ResponseEntity.ok(onboardingService.sendOnboardingEmails(10, dryRun));
         }
     }

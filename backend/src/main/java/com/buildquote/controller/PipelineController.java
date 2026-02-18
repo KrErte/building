@@ -65,13 +65,24 @@ public class PipelineController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getPipeline(@PathVariable UUID id) {
+    public ResponseEntity<?> getPipeline(@PathVariable UUID id,
+                                          @AuthenticationPrincipal UserPrincipal principal) {
+        User user = getUser(principal);
         Pipeline pipeline = pipelineEngine.getPipelineStatus(id);
+        if (!pipeline.getUser().getId().equals(user.getId())) {
+            return ResponseEntity.status(403).body(Map.of("message", "Access denied"));
+        }
         return ResponseEntity.ok(PipelineDto.fromEntity(pipeline));
     }
 
     @PostMapping("/{id}/resume")
-    public ResponseEntity<?> resumePipeline(@PathVariable UUID id) {
+    public ResponseEntity<?> resumePipeline(@PathVariable UUID id,
+                                             @AuthenticationPrincipal UserPrincipal principal) {
+        User user = getUser(principal);
+        Pipeline pipeline = pipelineEngine.getPipelineStatus(id);
+        if (!pipeline.getUser().getId().equals(user.getId())) {
+            return ResponseEntity.status(403).body(Map.of("message", "Access denied"));
+        }
         try {
             pipelineEngine.resumePipeline(id);
             return ResponseEntity.ok(Map.of("message", "Pipeline resumed"));
@@ -95,7 +106,13 @@ public class PipelineController {
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<?> cancelPipeline(@PathVariable UUID id) {
+    public ResponseEntity<?> cancelPipeline(@PathVariable UUID id,
+                                             @AuthenticationPrincipal UserPrincipal principal) {
+        User user = getUser(principal);
+        Pipeline pipeline = pipelineEngine.getPipelineStatus(id);
+        if (!pipeline.getUser().getId().equals(user.getId())) {
+            return ResponseEntity.status(403).body(Map.of("message", "Access denied"));
+        }
         pipelineEngine.cancelPipeline(id);
         return ResponseEntity.ok(Map.of("message", "Pipeline cancelled"));
     }

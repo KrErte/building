@@ -1,9 +1,8 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { environment } from '../../../environments/environment';
+import { CompanyService } from '../../services/company.service';
 import { HowItWorksComponent } from '../../components/how-it-works/how-it-works.component';
 
 @Component({
@@ -18,12 +17,13 @@ export class LandingComponent implements OnInit {
   currentLang = signal('ET');
   mobileMenuOpen = signal(false);
   supplierCount = signal(500);
+  currentYear = new Date().getFullYear();
 
   languages = ['ET', 'EN', 'RU'];
 
   constructor(
     private translate: TranslateService,
-    private http: HttpClient
+    private companyService: CompanyService
   ) {
     const savedLang = localStorage.getItem('buildquote_lang') || 'ET';
     this.currentLang.set(savedLang);
@@ -35,10 +35,10 @@ export class LandingComponent implements OnInit {
   }
 
   loadSupplierCount(): void {
-    this.http.get<any>(`${environment.apiUrl}/batch/stats`).subscribe({
-      next: (stats) => {
-        if (stats.totalCompanies) {
-          this.supplierCount.set(stats.totalCompanies);
+    this.companyService.getCount().subscribe({
+      next: (res) => {
+        if (res.count) {
+          this.supplierCount.set(res.count);
         }
       },
       error: () => {

@@ -43,19 +43,25 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public auth endpoints
                 .requestMatchers("/api/auth/**").permitAll()
-                // Public bid submission pages
+                // Public bid submission pages (token-based)
                 .requestMatchers("/api/bids/page/**").permitAll()
                 .requestMatchers("/api/bids/submit/**").permitAll()
                 // Health / info
                 .requestMatchers("/api/projects/health").permitAll()
                 // Public parsing (no save)
                 .requestMatchers("/api/projects/parse", "/api/projects/parse-file", "/api/projects/estimate-prices").permitAll()
-                // Public company browsing
+                // Public company browsing and stats
                 .requestMatchers("/api/companies/**").permitAll()
+                .requestMatchers("/api/batch/stats").permitAll()
+                // Public supplier search
+                .requestMatchers("/api/suppliers/search/**", "/api/suppliers/count").permitAll()
+                // Public pricing data
+                .requestMatchers("/api/prices/check", "/api/prices/categories", "/api/prices/estimate", "/api/prices/breakdown").permitAll()
+                .requestMatchers("/api/materials/*/suppliers").permitAll()
                 // H2 console (dev)
                 .requestMatchers("/h2-console/**").permitAll()
-                // Supplier onboarding (public)
-                .requestMatchers("/api/onboarding/**").permitAll()
+                // Supplier onboarding (public, token-based) - fix path to match controller
+                .requestMatchers("/api/onboard/{token}").permitAll()
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )

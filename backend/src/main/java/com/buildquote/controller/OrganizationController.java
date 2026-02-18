@@ -50,14 +50,16 @@ public class OrganizationController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> get(@PathVariable UUID id) {
+    public ResponseEntity<?> get(@PathVariable UUID id,
+                                  @AuthenticationPrincipal UserPrincipal principal) {
         Organization org = organizationService.getOrganization(id);
         return ResponseEntity.ok(OrganizationDto.fromEntity(org));
     }
 
     @PostMapping("/{id}/members")
     public ResponseEntity<?> addMember(@PathVariable UUID id,
-                                        @RequestBody Map<String, String> request) {
+                                        @RequestBody Map<String, String> request,
+                                        @AuthenticationPrincipal UserPrincipal principal) {
         String email = request.get("email");
         String roleStr = request.getOrDefault("role", "MEMBER");
         OrganizationMember.MemberRole role = OrganizationMember.MemberRole.valueOf(roleStr);
@@ -71,7 +73,8 @@ public class OrganizationController {
     }
 
     @DeleteMapping("/{orgId}/members/{userId}")
-    public ResponseEntity<?> removeMember(@PathVariable UUID orgId, @PathVariable UUID userId) {
+    public ResponseEntity<?> removeMember(@PathVariable UUID orgId, @PathVariable UUID userId,
+                                           @AuthenticationPrincipal UserPrincipal principal) {
         try {
             organizationService.removeMember(orgId, userId);
             return ResponseEntity.ok(Map.of("message", "Member removed"));
