@@ -148,6 +148,10 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
   rfqSent = signal(false);
   rfqSentCount = signal(0);
 
+  // Quantity editor step (after parse, before results)
+  showQuantityEditor = signal(false);
+  private unitPrices = new Map<string, { min: number; max: number; median: number }>();
+
   // Preview step
   showPreview = signal(false);
   previewCompanies = signal<CategoryCompanies[]>([]);
@@ -487,13 +491,47 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
       selected: true,
       expanded: false
     }));
+
+    // Store unit prices for recalculation after quantity edits
+    this.unitPrices.clear();
+    res.stages.forEach(s => {
+      const qty = s.quantity || 1;
+      this.unitPrices.set(s.name, {
+        min: (s.priceEstimateMin || 0) / qty,
+        max: (s.priceEstimateMax || 0) / qty,
+        median: (s.priceEstimateMedian || 0) / qty
+      });
+    });
+
     this.result.set(res);
     this.isLoading.set(false);
+    this.showQuantityEditor.set(true);
+  }
+
+  confirmQuantities(): void {
+    const r = this.result();
+    if (!r) return;
+
+    // Recalculate prices based on updated quantities
+    r.stages.forEach(s => {
+      const unitPrice = this.unitPrices.get(s.name);
+      if (unitPrice) {
+        s.priceEstimateMin = Math.round(unitPrice.min * s.quantity);
+        s.priceEstimateMax = Math.round(unitPrice.max * s.quantity);
+        s.priceEstimateMedian = Math.round(unitPrice.median * s.quantity);
+      }
+    });
+
+    r.totalEstimateMin = r.stages.reduce((sum, s) => sum + (s.priceEstimateMin || 0), 0);
+    r.totalEstimateMax = r.stages.reduce((sum, s) => sum + (s.priceEstimateMax || 0), 0);
+
+    this.result.set({ ...r });
+    this.showQuantityEditor.set(false);
     this.resultsVisible.set(true);
 
     // Stagger card animations
     this.visibleCardCount.set(0);
-    res.stages.forEach((_, index) => {
+    r.stages.forEach((_, index) => {
       setTimeout(() => {
         this.visibleCardCount.set(index + 1);
       }, 150 * (index + 1));
@@ -502,7 +540,13 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     // Animate counters after cards appear
     setTimeout(() => {
       this.animateCounters();
-    }, res.stages.length * 150 + 300);
+    }, r.stages.length * 150 + 300);
+  }
+
+  backToQuantityEditor(): void {
+    this.showQuantityEditor.set(true);
+    this.resultsVisible.set(false);
+    this.visibleCardCount.set(0);
   }
 
   private animateCounters(): void {
@@ -674,6 +718,8 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     this.animatedSupplierCount.set(0);
     this.showPreview.set(false);
     this.previewCompanies.set([]);
+    this.showQuantityEditor.set(false);
+    this.unitPrices.clear();
   }
 
   // Preview step methods

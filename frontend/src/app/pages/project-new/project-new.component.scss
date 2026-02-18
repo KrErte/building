@@ -849,6 +849,64 @@
 }
 
 // ============================================
+// QUANTITY EDITOR SECTION
+// ============================================
+
+.quantity-editor-section {
+  position: relative;
+  z-index: 1;
+  padding: 40px 0 100px;
+  animation: fadeIn 0.4s ease-out;
+
+  .container {
+    max-width: 900px;
+  }
+}
+
+.quantity-editor {
+  margin-top: 24px;
+
+  .qty-editor-header {
+    margin-bottom: 24px;
+
+    h3 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .section-hint {
+      font-size: 15px;
+      color: var(--text-secondary);
+
+      strong {
+        color: var(--purple-primary);
+      }
+    }
+  }
+
+  .work-items-table {
+    margin-bottom: 28px;
+  }
+
+  .cta-button {
+    margin-top: 8px;
+  }
+}
+
+.stage-icon-inline {
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 18px;
+  vertical-align: middle;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+// ============================================
 // RESULTS SECTION
 // ============================================
 

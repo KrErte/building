@@ -206,11 +206,10 @@
     </section>
   }
 
-  <!-- Results Section -->
-  @if (result()) {
-    <section class="results-section" [class.visible]="resultsVisible()">
+  <!-- Quantity Editor Section -->
+  @if (result() && showQuantityEditor()) {
+    <section class="quantity-editor-section">
       <div class="container">
-        <!-- Project Header -->
         <div class="project-header glass-card">
           <div class="project-info">
             <span class="project-badge">AI Analüüs</span>
@@ -228,6 +227,86 @@
             </svg>
             Uus päring
           </button>
+        </div>
+
+        <div class="quantity-editor glass-card">
+          <div class="qty-editor-header">
+            <h3>Kontrolli koguseid</h3>
+            <p class="section-hint">AI tuvastas <strong>{{ result()?.stages?.length }}</strong> etappi. Muuda koguseid vastavalt vajadusele.</p>
+          </div>
+
+          <div class="work-items-table">
+            <div class="table-header">
+              <span class="col-desc">Etapp</span>
+              <span class="col-qty">Kogus</span>
+              <span class="col-unit">Ühik</span>
+              <span class="col-cat">Kategooria</span>
+            </div>
+
+            @for (stage of result()?.stages; track stage.name; let i = $index) {
+              <div class="table-row">
+                <span class="col-desc">
+                  <span class="stage-icon-inline">{{ getCategoryIcon(stage.category) }}</span>
+                  {{ stage.name }}
+                </span>
+                <span class="col-qty">
+                  <input
+                    type="number"
+                    [value]="stage.quantity"
+                    (change)="updateQuantity(stage, $event)"
+                    min="0.1"
+                    step="0.1"
+                    class="qty-input"
+                  >
+                </span>
+                <span class="col-unit">{{ stage.unit }}</span>
+                <span class="col-cat">
+                  <span class="category-badge">{{ getCategoryLabel(stage.category) }}</span>
+                </span>
+              </div>
+            }
+          </div>
+
+          <button class="cta-button" (click)="confirmQuantities()">
+            <span>Kinnita kogused ja arvuta hinnad</span>
+            <span class="button-sparkle">✨</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- Results Section -->
+  @if (result() && !showQuantityEditor()) {
+    <section class="results-section" [class.visible]="resultsVisible()">
+      <div class="container">
+        <!-- Project Header -->
+        <div class="project-header glass-card">
+          <div class="project-info">
+            <span class="project-badge">AI Analüüs</span>
+            <h2>{{ result()?.projectTitle }}</h2>
+            <p class="project-location">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+              {{ result()?.location }}
+            </p>
+          </div>
+          <div class="header-actions">
+            <button class="btn-secondary" (click)="backToQuantityEditor()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Muuda koguseid
+            </button>
+            <button class="btn-secondary" (click)="resetForm()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+              Uus päring
+            </button>
+          </div>
         </div>
 
         <!-- Selection Controls -->
