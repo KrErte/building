@@ -48,6 +48,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/bids/submit/**").permitAll()
                 // Health / info
                 .requestMatchers("/api/projects/health").permitAll()
+                // Public parsing (no save)
+                .requestMatchers("/api/projects/parse", "/api/projects/parse-file").permitAll()
                 // Public company browsing
                 .requestMatchers("/api/companies/**").permitAll()
                 // H2 console (dev)
