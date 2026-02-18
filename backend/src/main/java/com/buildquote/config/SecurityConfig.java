@@ -48,6 +48,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/bids/submit/**").permitAll()
                 // Health / info
                 .requestMatchers("/api/projects/health").permitAll()
+                // Public company browsing
+                .requestMatchers("/api/companies/**").permitAll()
                 // H2 console (dev)
                 .requestMatchers("/h2-console/**").permitAll()
                 // Supplier onboarding (public)
