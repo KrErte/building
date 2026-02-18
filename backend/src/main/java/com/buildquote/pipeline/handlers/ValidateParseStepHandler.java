@@ -20,7 +20,7 @@ public class ValidateParseStepHandler implements StepHandler {
 
     private final ProjectRepository projectRepository;
 
-    private static final BigDecimal MAX_UNIT_PRICE = new BigDecimal("500000");
+    private static final BigDecimal MAX_UNIT_PRICE = new BigDecimal("10000");
     private static final double MIN_CONFIDENCE_THRESHOLD = 0.6;
 
     // Known category enum values (matching SupplierSearchService CATEGORY_TO_EMTAK)

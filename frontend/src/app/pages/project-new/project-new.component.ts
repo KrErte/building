@@ -78,62 +78,54 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
   loadingMessages = [
     'Analüüsin projekti...',
     'Tuvastan ehitusetappe...',
-    'Otsin sobivaid tegijaid...',
-    'Arvutan turuhinda...',
-    'Koostan pakkumist...'
+    'Loen koguseid...',
+    'Koostan tulemust...'
   ];
   loadingMessageIndex = signal(0);
 
-  // File type specific loading messages
+  // File type specific loading messages (parse phase only - no pricing)
   private fileTypeMessages: Record<string, string[]> = {
     'ifc': [
       'Loen BIM mudelit...',
       'Analüüsin ehituselemente...',
       'Tuvastan seinu ja uksi...',
-      'Arvutan koguseid...',
-      'Otsin tegijaid...'
+      'Arvutan koguseid...'
     ],
     'zip': [
       'Pakkisin ZIP-arhiivi lahti...',
       'Tuvastan failitüüpe...',
       'Analüüsin ehitusdokumente...',
-      'Arvutan koguseid...',
-      'Otsin tegijaid...'
+      'Arvutan koguseid...'
     ],
     'dwg': [
       'Analüüsin CAD joonist...',
       'Tuvastan joonise elemente...',
       'Loen mõõtmeid...',
-      'Otsin tegijaid...',
-      'Koostan pakkumist...'
+      'Koostan tulemust...'
     ],
     'dxf': [
       'Loen DXF joonist...',
       'Tuvastan joonise kihte...',
       'Analüüsin elemente...',
-      'Arvutan koguseid...',
-      'Otsin tegijaid...'
+      'Arvutan koguseid...'
     ],
     'rvt': [
       'Loen Revit mudelit...',
       'Analüüsin BIM andmeid...',
       'Tuvastan ehituselemente...',
-      'Arvutan koguseid...',
-      'Otsin tegijaid...'
+      'Arvutan koguseid...'
     ],
     'pdf': [
       'Loen PDF dokumenti...',
       'Analüüsin jooniseid...',
       'Tuvastan ehitusetappe...',
-      'Arvutan koguseid...',
-      'Otsin tegijaid...'
+      'Arvutan koguseid...'
     ],
     'image': [
       'Analüüsin pilti AI-ga...',
       'Tuvastan ehituselemente...',
       'Loen joonise mõõtmeid...',
-      'Arvutan koguseid...',
-      'Otsin tegijaid...'
+      'Arvutan koguseid...'
     ]
   };
 
@@ -501,7 +493,14 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     if (!r) return;
 
     this.isLoading.set(true);
-    this.loadingText.set('Arvutan turuhinda...');
+    this.loadingMessages = [
+      'Arvutan turuhinda...',
+      'Otsin sobivaid tegijaid...',
+      'Võrdlen pakkumisi...',
+      'Koostan hinnakalkulatsiooni...'
+    ];
+    this.loadingMessageIndex.set(0);
+    this.loadingText.set(this.loadingMessages[0]);
     this.startLoadingMessages();
 
     // Send confirmed quantities to backend for price estimation

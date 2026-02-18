@@ -52,7 +52,6 @@ public class ProjectParserService {
     private final IfcProcessingService ifcProcessingService;
     private final IfcOpenShellParserService ifcOpenShellParserService;
     private final DxfParserService dxfParserService;
-    private final EstimatePriceService estimatePriceService;
     private final MarketPriceRepository marketPriceRepository;
     private final SupplierRepository supplierRepository;
     private final SupplierSearchService supplierSearchService;
@@ -208,34 +207,6 @@ public class ProjectParserService {
 
         calculateTotals(result);
         return result;
-    }
-
-    /**
-     * Enrich result with price estimate from EstimatePriceService.
-     * If the estimate provides better values, use them.
-     */
-    private void enrichWithPriceEstimate(ProjectParseResult result, String description) {
-        try {
-            EstimatePriceService.EstimateResult estimate = estimatePriceService.calculateEstimate(description);
-            if (estimate != null && estimate.minTotal() != null && estimate.maxTotal() != null) {
-                BigDecimal estimateMin = estimate.minTotal();
-                BigDecimal estimateMax = estimate.maxTotal();
-
-                // If estimate is better (higher and more comprehensive), use it
-                if (estimateMin.compareTo(BigDecimal.ZERO) > 0 && estimateMax.compareTo(BigDecimal.ZERO) > 0) {
-                    // Use the higher of the two estimates for a more accurate range
-                    if (result.getTotalEstimateMin() == null || estimateMin.compareTo(result.getTotalEstimateMin()) > 0) {
-                        result.setTotalEstimateMin(estimateMin);
-                    }
-                    if (result.getTotalEstimateMax() == null || estimateMax.compareTo(result.getTotalEstimateMax()) > 0) {
-                        result.setTotalEstimateMax(estimateMax);
-                    }
-                    log.info("Applied price estimate: €{} – €{}", estimateMin, estimateMax);
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to calculate price estimate: {}", e.getMessage());
-        }
     }
 
     public ProjectParseResult parseFromFile(MultipartFile file) throws IOException {
@@ -1014,20 +985,22 @@ public class ProjectParserService {
         }
     }
 
-    // Maximum reasonable per-unit prices (€/m²) by category to prevent unrealistic estimates
+    // Maximum reasonable per-unit prices by category to prevent unrealistic estimates
+    // Units vary: m² for area work, tk for items (windows/doors), jm for linear work
+    // Based on Estonian construction market 2024-2025 rates (upper bound with materials)
     private static final Map<String, BigDecimal> MAX_UNIT_PRICE = Map.ofEntries(
-        Map.entry("TILING", new BigDecimal("55")),
-        Map.entry("ELECTRICAL", new BigDecimal("40")),
-        Map.entry("PLUMBING", new BigDecimal("50")),
-        Map.entry("FINISHING", new BigDecimal("25")),
-        Map.entry("FLOORING", new BigDecimal("35")),
-        Map.entry("DEMOLITION", new BigDecimal("30")),
-        Map.entry("ROOFING", new BigDecimal("70")),
-        Map.entry("HVAC", new BigDecimal("60")),
-        Map.entry("WINDOWS_DOORS", new BigDecimal("200")),
-        Map.entry("FACADE", new BigDecimal("60")),
-        Map.entry("GENERAL_CONSTRUCTION", new BigDecimal("50")),
-        Map.entry("LANDSCAPING", new BigDecimal("40"))
+        Map.entry("TILING", new BigDecimal("120")),          // €/m² (premium tiles + labor)
+        Map.entry("ELECTRICAL", new BigDecimal("80")),        // €/m² (full rewiring)
+        Map.entry("PLUMBING", new BigDecimal("150")),         // €/m² or €/tk (full bathroom plumbing)
+        Map.entry("FINISHING", new BigDecimal("60")),          // €/m² (premium paint + prep)
+        Map.entry("FLOORING", new BigDecimal("100")),          // €/m² (hardwood parquet + install)
+        Map.entry("DEMOLITION", new BigDecimal("50")),         // €/m²
+        Map.entry("ROOFING", new BigDecimal("150")),           // €/m² (metal roof + insulation)
+        Map.entry("HVAC", new BigDecimal("120")),              // €/m² (full system install)
+        Map.entry("WINDOWS_DOORS", new BigDecimal("1500")),    // €/tk (triple-glazed window installed)
+        Map.entry("FACADE", new BigDecimal("200")),            // €/m² (insulation + cladding)
+        Map.entry("GENERAL_CONSTRUCTION", new BigDecimal("150")), // €/m²
+        Map.entry("LANDSCAPING", new BigDecimal("80"))         // €/m²
     );
 
     private void enrichWithMarketPrices(ProjectStageDto stage, String location) {

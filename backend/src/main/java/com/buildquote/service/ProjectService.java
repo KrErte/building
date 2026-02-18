@@ -7,7 +7,6 @@ import com.buildquote.entity.Project;
 import com.buildquote.entity.ProjectStage;
 import com.buildquote.entity.User;
 import com.buildquote.entity.Pipeline;
-import com.buildquote.entity.User;
 import com.buildquote.pipeline.PipelineEngine;
 import com.buildquote.repository.ProjectRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
