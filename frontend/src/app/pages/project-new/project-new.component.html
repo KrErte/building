@@ -267,9 +267,21 @@
             }
           </div>
 
-          <button class="cta-button" (click)="confirmQuantities()">
-            <span>Kinnita kogused ja arvuta hinnad</span>
-            <span class="button-sparkle">✨</span>
+          <button
+            class="cta-button"
+            [class.loading]="isLoading()"
+            (click)="confirmQuantities()"
+            [disabled]="isLoading()"
+          >
+            @if (isLoading()) {
+              <div class="loading-content">
+                <div class="spinner"></div>
+                <span>{{ loadingText() }}</span>
+              </div>
+            } @else {
+              <span>Kinnita kogused ja arvuta hinnad</span>
+              <span class="button-sparkle">✨</span>
+            }
           </button>
         </div>
       </div>

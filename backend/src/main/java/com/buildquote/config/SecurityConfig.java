@@ -49,7 +49,7 @@ public class SecurityConfig {
                 // Health / info
                 .requestMatchers("/api/projects/health").permitAll()
                 // Public parsing (no save)
-                .requestMatchers("/api/projects/parse", "/api/projects/parse-file").permitAll()
+                .requestMatchers("/api/projects/parse", "/api/projects/parse-file", "/api/projects/estimate-prices").permitAll()
                 // Public company browsing
                 .requestMatchers("/api/companies/**").permitAll()
                 // H2 console (dev)

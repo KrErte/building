@@ -150,7 +150,6 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
 
   // Quantity editor step (after parse, before results)
   showQuantityEditor = signal(false);
-  private unitPrices = new Map<string, { min: number; max: number; median: number }>();
 
   // Preview step
   showPreview = signal(false);
@@ -492,17 +491,6 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
       expanded: false
     }));
 
-    // Store unit prices for recalculation after quantity edits
-    this.unitPrices.clear();
-    res.stages.forEach(s => {
-      const qty = s.quantity || 1;
-      this.unitPrices.set(s.name, {
-        min: (s.priceEstimateMin || 0) / qty,
-        max: (s.priceEstimateMax || 0) / qty,
-        median: (s.priceEstimateMedian || 0) / qty
-      });
-    });
-
     this.result.set(res);
     this.isLoading.set(false);
     this.showQuantityEditor.set(true);
@@ -512,35 +500,41 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     const r = this.result();
     if (!r) return;
 
-    // Recalculate prices based on updated quantities
-    r.stages.forEach(s => {
-      const unitPrice = this.unitPrices.get(s.name);
-      if (unitPrice) {
-        s.priceEstimateMin = Math.round(unitPrice.min * s.quantity);
-        s.priceEstimateMax = Math.round(unitPrice.max * s.quantity);
-        s.priceEstimateMedian = Math.round(unitPrice.median * s.quantity);
+    this.isLoading.set(true);
+    this.loadingText.set('Arvutan turuhinda...');
+    this.startLoadingMessages();
+
+    // Send confirmed quantities to backend for price estimation
+    this.projectService.estimatePrices(r).subscribe({
+      next: (enriched) => {
+        enriched.stages = enriched.stages.map(s => ({
+          ...s,
+          selected: true,
+          expanded: false
+        }));
+        this.result.set(enriched);
+        this.isLoading.set(false);
+        this.showQuantityEditor.set(false);
+        this.resultsVisible.set(true);
+
+        // Stagger card animations
+        this.visibleCardCount.set(0);
+        enriched.stages.forEach((_, index) => {
+          setTimeout(() => {
+            this.visibleCardCount.set(index + 1);
+          }, 150 * (index + 1));
+        });
+
+        setTimeout(() => {
+          this.animateCounters();
+        }, enriched.stages.length * 150 + 300);
+      },
+      error: (err) => {
+        console.error('Price estimation error:', err);
+        this.error.set('Hindade arvutamine ebaõnnestus. Palun proovi uuesti.');
+        this.isLoading.set(false);
       }
     });
-
-    r.totalEstimateMin = r.stages.reduce((sum, s) => sum + (s.priceEstimateMin || 0), 0);
-    r.totalEstimateMax = r.stages.reduce((sum, s) => sum + (s.priceEstimateMax || 0), 0);
-
-    this.result.set({ ...r });
-    this.showQuantityEditor.set(false);
-    this.resultsVisible.set(true);
-
-    // Stagger card animations
-    this.visibleCardCount.set(0);
-    r.stages.forEach((_, index) => {
-      setTimeout(() => {
-        this.visibleCardCount.set(index + 1);
-      }, 150 * (index + 1));
-    });
-
-    // Animate counters after cards appear
-    setTimeout(() => {
-      this.animateCounters();
-    }, r.stages.length * 150 + 300);
   }
 
   backToQuantityEditor(): void {
@@ -719,7 +713,6 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     this.showPreview.set(false);
     this.previewCompanies.set([]);
     this.showQuantityEditor.set(false);
-    this.unitPrices.clear();
   }
 
   // Preview step methods

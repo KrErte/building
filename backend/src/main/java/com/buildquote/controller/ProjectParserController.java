@@ -51,6 +51,20 @@ public class ProjectParserController {
     }
 
     /**
+     * Enrich parsed stages with market prices and supplier counts.
+     * Called after user confirms quantities.
+     */
+    @PostMapping("/estimate-prices")
+    public ResponseEntity<ProjectParseResult> estimatePrices(
+            @RequestBody ProjectParseResult parseResult) {
+        log.info("Received estimate-prices request for {} stages",
+                parseResult.getStages() != null ? parseResult.getStages().size() : 0);
+
+        ProjectParseResult enriched = projectParserService.enrichWithPrices(parseResult);
+        return ResponseEntity.ok(enriched);
+    }
+
+    /**
      * Health check endpoint
      */
     @GetMapping("/health")

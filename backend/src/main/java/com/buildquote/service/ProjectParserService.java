@@ -127,7 +127,7 @@ public class ProjectParserService {
         """;
 
     public ProjectParseResult parseFromText(String description) {
-        log.info("Parsing project description: {}", description.substring(0, Math.min(100, description.length())));
+        log.info("Parsing project description (no prices): {}", description.substring(0, Math.min(100, description.length())));
 
         String prompt = PARSE_PROMPT + description;
         String response = anthropicService.callClaude(prompt);
@@ -155,7 +155,6 @@ public class ProjectParserService {
             JsonNode stagesNode = root.path("stages");
 
             if (stagesNode.isArray()) {
-                // First pass: create all stages
                 for (JsonNode stageNode : stagesNode) {
                     ProjectStageDto stage = new ProjectStageDto();
                     stage.setName(stageNode.path("name").asText());
@@ -174,39 +173,41 @@ public class ProjectParserService {
                     stage.setDependencies(deps);
                     stages.add(stage);
                 }
-
-                // Second pass: enrich all stages IN PARALLEL
-                String location = result.getLocation();
-                List<CompletableFuture<Void>> enrichmentFutures = new ArrayList<>();
-
-                for (ProjectStageDto stage : stages) {
-                    CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                        enrichWithMarketPrices(stage, location);
-                        enrichWithSupplierCount(stage, location);
-                    }, enrichmentExecutor);
-                    enrichmentFutures.add(future);
-                }
-
-                // Wait for all enrichments to complete (max 5 seconds)
-                try {
-                    CompletableFuture.allOf(enrichmentFutures.toArray(new CompletableFuture[0]))
-                        .get(5, TimeUnit.SECONDS);
-                } catch (Exception e) {
-                    log.warn("Parallel enrichment timeout, some stages may have default values");
-                }
             }
 
             result.setStages(stages);
-            calculateTotals(result);
-
-            // Calculate estimate using EstimatePriceService for IFC-based descriptions
-            enrichWithPriceEstimate(result, description);
-
             return result;
         } catch (Exception e) {
             log.error("Error parsing Claude response: {}", e.getMessage(), e);
             return createFallbackResult(description);
         }
+    }
+
+    /**
+     * Enrich stages with market prices and supplier counts.
+     * Called separately after user confirms quantities.
+     */
+    public ProjectParseResult enrichWithPrices(ProjectParseResult result) {
+        String location = result.getLocation();
+        List<CompletableFuture<Void>> enrichmentFutures = new ArrayList<>();
+
+        for (ProjectStageDto stage : result.getStages()) {
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                enrichWithMarketPrices(stage, location);
+                enrichWithSupplierCount(stage, location);
+            }, enrichmentExecutor);
+            enrichmentFutures.add(future);
+        }
+
+        try {
+            CompletableFuture.allOf(enrichmentFutures.toArray(new CompletableFuture[0]))
+                .get(5, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.warn("Parallel enrichment timeout, some stages may have default values");
+        }
+
+        calculateTotals(result);
+        return result;
     }
 
     /**
@@ -1173,10 +1174,6 @@ public class ProjectParserService {
 
         List<ProjectStageDto> stages = parseDescriptionManually(description, result.getLocation());
         result.setStages(stages);
-        calculateTotals(result);
-
-        // Apply price estimate
-        enrichWithPriceEstimate(result, description);
 
         return result;
     }
@@ -1194,79 +1191,51 @@ public class ProjectParserService {
         List<ProjectStageDto> stages = new ArrayList<>();
         String lower = description.toLowerCase();
 
-        // Parse for tiling mentions
         if (lower.contains("plaati") || lower.contains("tiling") || lower.contains("keraami")) {
             BigDecimal qty = extractQuantity(description, "plaati", 20);
-            ProjectStageDto stage = createStage("Plaatimistööd", "TILING", qty, "m2",
-                "Vannitoa ja/või köögi plaatimine");
-            enrichWithMarketPrices(stage, location);
-            enrichWithSupplierCount(stage, location);
-            stages.add(stage);
+            stages.add(createStage("Plaatimistööd", "TILING", qty, "m2",
+                "Vannitoa ja/või köögi plaatimine"));
         }
 
-        // Parse for electrical mentions
         if (lower.contains("elektr") || lower.contains("electrical") || lower.contains("juhtme")) {
             BigDecimal qty = extractQuantity(description, "elektr", 65);
-            ProjectStageDto stage = createStage("Elektritööd", "ELECTRICAL", qty, "m2",
-                "Elektrisüsteemi uuendamine või paigaldamine");
-            enrichWithMarketPrices(stage, location);
-            enrichWithSupplierCount(stage, location);
-            stages.add(stage);
+            stages.add(createStage("Elektritööd", "ELECTRICAL", qty, "m2",
+                "Elektrisüsteemi uuendamine või paigaldamine"));
         }
 
-        // Parse for finishing/painting mentions
         if (lower.contains("viimistl") || lower.contains("värvi") || lower.contains("sein") || lower.contains("paint")) {
             BigDecimal qty = extractQuantity(description, "viimistl", 180);
             if (qty.compareTo(BigDecimal.ZERO) == 0) {
                 qty = extractQuantity(description, "sein", 180);
             }
-            ProjectStageDto stage = createStage("Viimistlustööd", "FINISHING", qty, "m2",
-                "Seinte ja lagede viimistlemine, värvimine");
-            enrichWithMarketPrices(stage, location);
-            enrichWithSupplierCount(stage, location);
-            stages.add(stage);
+            stages.add(createStage("Viimistlustööd", "FINISHING", qty, "m2",
+                "Seinte ja lagede viimistlemine, värvimine"));
         }
 
-        // Parse for flooring mentions
         if (lower.contains("põrand") || lower.contains("laminaat") || lower.contains("parkett") || lower.contains("floor")) {
             BigDecimal qty = extractQuantity(description, "põrand", 45);
             if (qty.compareTo(BigDecimal.ZERO) == 0) {
                 qty = extractQuantity(description, "laminaat", 45);
             }
-            ProjectStageDto stage = createStage("Põrandatööd", "FLOORING", qty, "m2",
-                "Põrandakatte paigaldamine");
-            enrichWithMarketPrices(stage, location);
-            enrichWithSupplierCount(stage, location);
-            stages.add(stage);
+            stages.add(createStage("Põrandatööd", "FLOORING", qty, "m2",
+                "Põrandakatte paigaldamine"));
         }
 
-        // Parse for plumbing mentions
         if (lower.contains("sanit") || lower.contains("toru") || lower.contains("plumb") || lower.contains("vesi")) {
             BigDecimal qty = extractQuantity(description, "sanit", 15);
-            ProjectStageDto stage = createStage("Sanitaartehnilised tööd", "PLUMBING", qty, "m2",
-                "Torustiku ja sanitaartehnika paigaldamine");
-            enrichWithMarketPrices(stage, location);
-            enrichWithSupplierCount(stage, location);
-            stages.add(stage);
+            stages.add(createStage("Sanitaartehnilised tööd", "PLUMBING", qty, "m2",
+                "Torustiku ja sanitaartehnika paigaldamine"));
         }
 
-        // Parse for demolition mentions
         if (lower.contains("lammut") || lower.contains("demol") || lower.contains("lõhku")) {
             BigDecimal qty = extractQuantity(description, "lammut", 30);
-            ProjectStageDto stage = createStage("Lammutustööd", "DEMOLITION", qty, "m2",
-                "Vanade konstruktsioonide ja viimistluse eemaldamine");
-            enrichWithMarketPrices(stage, location);
-            enrichWithSupplierCount(stage, location);
-            stages.add(stage);
+            stages.add(createStage("Lammutustööd", "DEMOLITION", qty, "m2",
+                "Vanade konstruktsioonide ja viimistluse eemaldamine"));
         }
 
-        // If nothing specific found, create general construction stage
         if (stages.isEmpty()) {
-            ProjectStageDto stage = createStage("Üldehitustööd", "GENERAL_CONSTRUCTION",
-                new BigDecimal("50"), "m2", "Üldised ehitustööd");
-            enrichWithMarketPrices(stage, location);
-            enrichWithSupplierCount(stage, location);
-            stages.add(stage);
+            stages.add(createStage("Üldehitustööd", "GENERAL_CONSTRUCTION",
+                new BigDecimal("50"), "m2", "Üldised ehitustööd"));
         }
 
         return stages;

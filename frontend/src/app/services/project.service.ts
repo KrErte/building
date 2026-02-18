@@ -216,6 +216,10 @@ export class ProjectService {
     return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
   }
 
+  estimatePrices(parseResult: ProjectParseResult): Observable<ProjectParseResult> {
+    return this.http.post<ProjectParseResult>(`${this.apiUrl}/projects/estimate-prices`, parseResult);
+  }
+
   // Persistent project endpoints
   parseAndSave(description: string): Observable<Project> {
     return this.http.post<Project>(`${this.apiUrl}/projects/parse-and-save`, { description });
