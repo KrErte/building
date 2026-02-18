@@ -13,15 +13,71 @@ export interface ProjectStage {
   expanded?: boolean;
 }
 
+export interface PipeComponent {
+  type: string;
+  typeLabel: string;
+  diameterMm: number;
+  count: number;
+  lengthM: number | null;
+  material: string;
+  confidence: number;
+  unitPriceMin: number;
+  unitPriceMax: number;
+  totalPriceMin: number;
+  totalPriceMax: number;
+  priceUnit: string;
+}
+
+export interface PipeSystem {
+  systemCode: string;
+  systemName: string;
+  systemType: string;
+  lengthMeters: number;
+  pipeSpecs: string;
+  confidence: number;
+  components: PipeComponent[];
+  totalPriceMin: number;
+  totalPriceMax: number;
+  expanded?: boolean;
+}
+
+export interface DependentMaterial {
+  materialName: string;
+  totalQuantity: number;
+  unit: string;
+  unitPriceMin: number;
+  unitPriceMax: number;
+  totalPriceMin: number;
+  totalPriceMax: number;
+  sourceStages: string[];
+}
+
+export interface MaterialSummary {
+  name: string;
+  type: 'WORK' | 'MATERIAL';
+  quantity: number;
+  unit: string;
+  priceMin: number;
+  priceMax: number;
+  category: string;
+}
+
 export interface ProjectParseResult {
   projectTitle: string;
   location: string;
   totalBudget: number | null;
   deadline: string | null;
   stages: ProjectStage[];
+  pipeSystems: PipeSystem[] | null;
   totalEstimateMin: number;
   totalEstimateMax: number;
   totalSupplierCount: number;
+  dependentMaterials: DependentMaterial[] | null;
+  summary: MaterialSummary[] | null;
+  materialsTotalMin: number;
+  materialsTotalMax: number;
+  grandTotalMin: number;
+  grandTotalMax: number;
 }
 
 export interface ProjectParseRequest {
@@ -197,6 +253,32 @@ export const CATEGORY_ICONS: { [key: string]: string } = {
   'HVAC': '❄️',
   'WINDOWS_DOORS': '🪟',
   'OTHER': '📦'
+};
+
+export const PIPE_SYSTEM_LABELS: { [key: string]: string } = {
+  'SK': 'Sademeveekanalisatsioon',
+  'OK': 'Olmekanalisatsioon',
+  'RV': 'Reoveekanalisatsioon',
+  'VV': 'Veevarustus',
+  'SV': 'Sooja vee varustus',
+  'K': 'Küte',
+  'DR': 'Drenaaž',
+  'TV': 'Tuletõrjeveevarustus',
+  'V1': 'Ventilatsioon 1',
+  'V2': 'Ventilatsioon 2'
+};
+
+export const PIPE_SYSTEM_ICONS: { [key: string]: string } = {
+  'SK': '🌧️',
+  'OK': '🚿',
+  'RV': '🚰',
+  'VV': '💧',
+  'SV': '🔥',
+  'K': '♨️',
+  'DR': '⬇️',
+  'TV': '🧯',
+  'V1': '💨',
+  'V2': '💨'
 };
 
 export const PIPELINE_STEP_LABELS: { [key: string]: string } = {

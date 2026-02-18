@@ -1,5 +1,9 @@
 package com.buildquote.service;
 
+import com.buildquote.dto.DependentMaterialDto;
+import com.buildquote.dto.MaterialSummaryDto;
+import com.buildquote.dto.PipeComponentDto;
+import com.buildquote.dto.PipeSystemDto;
 import com.buildquote.dto.ProjectParseResult;
 import com.buildquote.dto.ProjectStageDto;
 import com.buildquote.entity.MarketPrice;
@@ -55,6 +59,7 @@ public class ProjectParserService {
     private final MarketPriceRepository marketPriceRepository;
     private final SupplierRepository supplierRepository;
     private final SupplierSearchService supplierSearchService;
+    private final DependentMaterialService dependentMaterialService;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ExecutorService enrichmentExecutor = Executors.newFixedThreadPool(8);
 
@@ -124,6 +129,76 @@ public class ProjectParserService {
 
         Project description:
         """;
+
+    private static final String PIPE_SYSTEM_PROMPT = """
+        You are a specialist in reading plumbing, HVAC and MEP construction drawings.
+        Analyze these construction drawing images and identify ALL pipe systems shown.
+
+        Common Estonian pipe system codes:
+        - SK = Sademeveekanalisatsioon (rainwater sewage)
+        - OK = Olmekanalisatsioon (domestic sewage)
+        - RV = Reoveekanalisatsioon (wastewater)
+        - VV = Veevarustus (water supply - cold)
+        - SV = Sooja vee varustus (hot water supply)
+        - K = Küte (heating)
+        - DR = Drenaaž (drainage)
+        - TV = Tuletõrjeveevarustus (fire water supply)
+        - V1/V2 = Ventilatsioon (ventilation ducts)
+
+        For EACH pipe system found, identify:
+        1. System code and full name
+        2. System type (SEWAGE, RAINWATER, WATER_SUPPLY, HOT_WATER, VENTILATION, HEATING, DRAIN, FIRE_WATER)
+        3. Total estimated pipe length in meters
+        4. Pipe specifications (material, diameters used)
+        5. Component counts: straight pipe sections, elbows (45° and 90°), tees, couplings, reducers, valves, manholes, drains, cleanouts
+        6. Your confidence level (0.0-1.0) for the system detection and for each component
+
+        Rules:
+        - If you see direction changes in pipes, infer elbows even if symbols aren't clearly visible
+        - Count each fitting individually
+        - For straight pipe, estimate total length in meters per diameter
+        - If diameter is not clearly marked, infer from context (domestic sewage typically DN110, rainwater DN110-160, water supply DN25-50)
+        - Only include systems you can actually identify in the drawing
+        - Set confidence lower for inferred components vs clearly visible ones
+
+        Return ONLY valid JSON in this exact format:
+        {
+          "pipeSystems": [
+            {
+              "systemCode": "SK",
+              "systemName": "Sademeveekanalisatsioon",
+              "systemType": "RAINWATER",
+              "lengthMeters": 45.5,
+              "pipeSpecs": "PP DN110-160",
+              "confidence": 0.85,
+              "components": [
+                {
+                  "type": "STRAIGHT",
+                  "typeLabel": "Sirge toru",
+                  "diameterMm": 110,
+                  "count": 1,
+                  "lengthM": 30.0,
+                  "material": "PP",
+                  "confidence": 0.8
+                },
+                {
+                  "type": "ELBOW_90",
+                  "typeLabel": "Põlv 90°",
+                  "diameterMm": 110,
+                  "count": 6,
+                  "lengthM": null,
+                  "material": "PP",
+                  "confidence": 0.7
+                }
+              ]
+            }
+          ]
+        }
+        """;
+
+    // Thread-local storage for page images rendered during PDF extraction (reused for pipe detection)
+    private final ThreadLocal<List<byte[]>> lastPageImages = new ThreadLocal<>();
+    private final ThreadLocal<List<String>> lastMediaTypes = new ThreadLocal<>();
 
     public ProjectParseResult parseFromText(String description) {
         log.info("Parsing project description (no prices): {}", description.substring(0, Math.min(100, description.length())));
@@ -205,7 +280,22 @@ public class ProjectParserService {
             log.warn("Parallel enrichment timeout, some stages may have default values");
         }
 
+        // Enrich pipe system component prices
+        if (result.getPipeSystems() != null && !result.getPipeSystems().isEmpty()) {
+            enrichPipeSystemPrices(result.getPipeSystems());
+        }
+
+        // Calculate dependent materials from component recipes
+        try {
+            List<DependentMaterialDto> dependentMaterials =
+                dependentMaterialService.calculateDependentMaterials(result.getStages());
+            result.setDependentMaterials(dependentMaterials);
+        } catch (Exception e) {
+            log.warn("Dependent material calculation failed: {}", e.getMessage());
+        }
+
         calculateTotals(result);
+        buildSummary(result);
         return result;
     }
 
@@ -222,6 +312,22 @@ public class ProjectParserService {
         // Handle different file types
         if (lowerFilename.endsWith(".pdf")) {
             text = extractFromPdf(file);
+
+            // After PDF parse, check if we stored page images and if the result contains MEP stages
+            ProjectParseResult result = parseFromText(text);
+            List<byte[]> storedImages = lastPageImages.get();
+            List<String> storedTypes = lastMediaTypes.get();
+            try {
+                if (storedImages != null && !storedImages.isEmpty() && hasMepStages(result)) {
+                    log.info("MEP stages detected, running pipe system detection on {} page images", storedImages.size());
+                    List<PipeSystemDto> pipeSystems = detectPipeSystems(storedImages, storedTypes);
+                    result.setPipeSystems(pipeSystems);
+                }
+            } finally {
+                lastPageImages.remove();
+                lastMediaTypes.remove();
+            }
+            return result;
         } else if (lowerFilename.endsWith(".docx") || lowerFilename.endsWith(".doc")) {
             text = extractTextFromDocx(file.getInputStream());
         } else if (lowerFilename.endsWith(".zip")) {
@@ -297,6 +403,10 @@ public class ProjectParserService {
             mediaTypes.add("image/png");
         }
 
+        // Store rendered images for potential pipe system detection reuse
+        lastPageImages.set(pageImages);
+        lastMediaTypes.set(mediaTypes);
+
         String visionResponse;
         if (pageImages.size() == 1) {
             visionResponse = anthropicService.callClaudeVision(
@@ -329,7 +439,18 @@ public class ProjectParserService {
 
         if (visionResponse != null) {
             String description = "Ehitusplaanilt/fotolt tuvastatud (Vision AI):\n\n" + visionResponse;
-            return parseFromText(description);
+            ProjectParseResult result = parseFromText(description);
+
+            // If MEP stages detected, run pipe system detection on the uploaded image
+            if (hasMepStages(result)) {
+                log.info("MEP stages detected in image, running pipe system detection");
+                List<byte[]> images = List.of(imageBytes);
+                List<String> types = List.of(mediaType);
+                List<PipeSystemDto> pipeSystems = detectPipeSystems(images, types);
+                result.setPipeSystems(pipeSystems);
+            }
+
+            return result;
         }
 
         // Fallback if vision fails
@@ -1127,6 +1248,219 @@ public class ProjectParserService {
         result.setTotalEstimateMin(totalMin);
         result.setTotalEstimateMax(totalMax);
         result.setTotalSupplierCount(totalSuppliers);
+
+        // Calculate materials totals
+        BigDecimal materialsTotalMin = BigDecimal.ZERO;
+        BigDecimal materialsTotalMax = BigDecimal.ZERO;
+
+        if (result.getDependentMaterials() != null) {
+            for (DependentMaterialDto mat : result.getDependentMaterials()) {
+                if (mat.getTotalPriceMin() != null) {
+                    materialsTotalMin = materialsTotalMin.add(mat.getTotalPriceMin());
+                }
+                if (mat.getTotalPriceMax() != null) {
+                    materialsTotalMax = materialsTotalMax.add(mat.getTotalPriceMax());
+                }
+            }
+        }
+
+        result.setMaterialsTotalMin(materialsTotalMin);
+        result.setMaterialsTotalMax(materialsTotalMax);
+        result.setGrandTotalMin(totalMin.add(materialsTotalMin));
+        result.setGrandTotalMax(totalMax.add(materialsTotalMax));
+    }
+
+    private void buildSummary(ProjectParseResult result) {
+        List<MaterialSummaryDto> summary = new ArrayList<>();
+
+        // Add work items
+        for (ProjectStageDto stage : result.getStages()) {
+            MaterialSummaryDto row = new MaterialSummaryDto();
+            row.setName(stage.getName());
+            row.setType("WORK");
+            row.setQuantity(stage.getQuantity());
+            row.setUnit(stage.getUnit());
+            row.setPriceMin(stage.getPriceEstimateMin());
+            row.setPriceMax(stage.getPriceEstimateMax());
+            row.setCategory(stage.getCategory());
+            summary.add(row);
+        }
+
+        // Add material items
+        if (result.getDependentMaterials() != null) {
+            for (DependentMaterialDto mat : result.getDependentMaterials()) {
+                MaterialSummaryDto row = new MaterialSummaryDto();
+                row.setName(mat.getMaterialName());
+                row.setType("MATERIAL");
+                row.setQuantity(mat.getTotalQuantity());
+                row.setUnit(mat.getUnit());
+                row.setPriceMin(mat.getTotalPriceMin());
+                row.setPriceMax(mat.getTotalPriceMax());
+                row.setCategory("MATERIAL");
+                summary.add(row);
+            }
+        }
+
+        result.setSummary(summary);
+    }
+
+    /**
+     * Check if any stage in the result has a PLUMBING or HVAC category.
+     */
+    private boolean hasMepStages(ProjectParseResult result) {
+        if (result == null || result.getStages() == null) return false;
+        return result.getStages().stream().anyMatch(s -> {
+            String cat = s.getCategory();
+            return "PLUMBING".equals(cat) || "HVAC".equals(cat);
+        });
+    }
+
+    /**
+     * Detect pipe systems from page images using a second Vision API call.
+     */
+    private List<PipeSystemDto> detectPipeSystems(List<byte[]> pageImages, List<String> mediaTypes) {
+        try {
+            String visionResponse;
+            if (pageImages.size() == 1) {
+                visionResponse = anthropicService.callClaudeVision(
+                    pageImages.get(0), mediaTypes.get(0), PIPE_SYSTEM_PROMPT
+                );
+            } else {
+                visionResponse = anthropicService.callClaudeVisionMultiple(
+                    pageImages, mediaTypes,
+                    PIPE_SYSTEM_PROMPT + "\n\nThis document has " + pageImages.size() + " pages. Analyze all pages together."
+                );
+            }
+
+            if (visionResponse == null) {
+                log.warn("Pipe system detection returned null response");
+                return null;
+            }
+
+            String jsonStr = extractJson(visionResponse);
+            JsonNode root = objectMapper.readTree(jsonStr);
+            JsonNode systemsNode = root.path("pipeSystems");
+
+            if (!systemsNode.isArray()) {
+                log.warn("Pipe system response missing pipeSystems array");
+                return null;
+            }
+
+            List<PipeSystemDto> systems = new ArrayList<>();
+            for (JsonNode sysNode : systemsNode) {
+                PipeSystemDto system = new PipeSystemDto();
+                system.setSystemCode(sysNode.path("systemCode").asText(""));
+                system.setSystemName(sysNode.path("systemName").asText(""));
+                system.setSystemType(sysNode.path("systemType").asText(""));
+                system.setLengthMeters(new BigDecimal(sysNode.path("lengthMeters").asText("0")));
+                system.setPipeSpecs(sysNode.path("pipeSpecs").asText(""));
+                system.setConfidence(sysNode.path("confidence").asDouble(0.5));
+
+                List<PipeComponentDto> components = new ArrayList<>();
+                JsonNode compsNode = sysNode.path("components");
+                if (compsNode.isArray()) {
+                    for (JsonNode compNode : compsNode) {
+                        PipeComponentDto comp = new PipeComponentDto();
+                        comp.setType(compNode.path("type").asText(""));
+                        comp.setTypeLabel(compNode.path("typeLabel").asText(""));
+                        comp.setDiameterMm(compNode.path("diameterMm").asInt(0));
+                        comp.setCount(compNode.path("count").asInt(0));
+                        if (!compNode.path("lengthM").isNull() && compNode.path("lengthM").isNumber()) {
+                            comp.setLengthM(new BigDecimal(compNode.path("lengthM").asText("0")));
+                        }
+                        comp.setMaterial(compNode.path("material").asText(""));
+                        comp.setConfidence(compNode.path("confidence").asDouble(0.5));
+                        components.add(comp);
+                    }
+                }
+                system.setComponents(components);
+                systems.add(system);
+            }
+
+            log.info("Detected {} pipe systems", systems.size());
+            return systems.isEmpty() ? null : systems;
+
+        } catch (Exception e) {
+            log.warn("Pipe system detection failed: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Apply default unit prices to pipe system components based on type and diameter.
+     */
+    private void enrichPipeSystemPrices(List<PipeSystemDto> systems) {
+        for (PipeSystemDto system : systems) {
+            BigDecimal systemTotalMin = BigDecimal.ZERO;
+            BigDecimal systemTotalMax = BigDecimal.ZERO;
+
+            for (PipeComponentDto comp : system.getComponents()) {
+                BigDecimal unitMin;
+                BigDecimal unitMax;
+                String priceUnit;
+
+                switch (comp.getType()) {
+                    case "STRAIGHT" -> {
+                        priceUnit = "jm";
+                        if (comp.getDiameterMm() <= 50) {
+                            unitMin = new BigDecimal("3"); unitMax = new BigDecimal("6");
+                        } else if (comp.getDiameterMm() <= 110) {
+                            unitMin = new BigDecimal("5"); unitMax = new BigDecimal("12");
+                        } else {
+                            unitMin = new BigDecimal("8"); unitMax = new BigDecimal("18");
+                        }
+                    }
+                    case "ELBOW_45", "ELBOW_90" -> {
+                        priceUnit = "tk"; unitMin = new BigDecimal("2"); unitMax = new BigDecimal("10");
+                    }
+                    case "COUPLING" -> {
+                        priceUnit = "tk"; unitMin = new BigDecimal("1.50"); unitMax = new BigDecimal("5");
+                    }
+                    case "TEE" -> {
+                        priceUnit = "tk"; unitMin = new BigDecimal("3"); unitMax = new BigDecimal("12");
+                    }
+                    case "REDUCER" -> {
+                        priceUnit = "tk"; unitMin = new BigDecimal("2"); unitMax = new BigDecimal("8");
+                    }
+                    case "VALVE" -> {
+                        priceUnit = "tk"; unitMin = new BigDecimal("15"); unitMax = new BigDecimal("80");
+                    }
+                    case "MANHOLE" -> {
+                        priceUnit = "tk"; unitMin = new BigDecimal("150"); unitMax = new BigDecimal("500");
+                    }
+                    case "DRAIN" -> {
+                        priceUnit = "tk"; unitMin = new BigDecimal("20"); unitMax = new BigDecimal("80");
+                    }
+                    case "CLEANOUT" -> {
+                        priceUnit = "tk"; unitMin = new BigDecimal("10"); unitMax = new BigDecimal("40");
+                    }
+                    default -> {
+                        priceUnit = "tk"; unitMin = new BigDecimal("5"); unitMax = new BigDecimal("20");
+                    }
+                }
+
+                comp.setUnitPriceMin(unitMin);
+                comp.setUnitPriceMax(unitMax);
+                comp.setPriceUnit(priceUnit);
+
+                // Calculate total: for STRAIGHT pipes use lengthM, for fittings use count
+                BigDecimal quantity;
+                if ("STRAIGHT".equals(comp.getType()) && comp.getLengthM() != null) {
+                    quantity = comp.getLengthM();
+                } else {
+                    quantity = new BigDecimal(comp.getCount());
+                }
+
+                comp.setTotalPriceMin(unitMin.multiply(quantity));
+                comp.setTotalPriceMax(unitMax.multiply(quantity));
+
+                systemTotalMin = systemTotalMin.add(comp.getTotalPriceMin());
+                systemTotalMax = systemTotalMax.add(comp.getTotalPriceMax());
+            }
+
+            system.setTotalPriceMin(systemTotalMin);
+            system.setTotalPriceMax(systemTotalMax);
+        }
     }
 
     private String extractJson(String response) {

@@ -8,11 +8,16 @@ import { Company } from '../../models/company.model';
 import {
   ProjectParseResult,
   ProjectStage,
+  DependentMaterial,
+  PipeSystem,
   CATEGORY_LABELS,
   CATEGORY_ICONS
 } from '../../models/project.model';
 import { RfqRequest } from '../../models/rfq.model';
 import { PriceBreakdownComponent } from '../../components/price-breakdown/price-breakdown.component';
+import { PipeSystemBreakdownComponent } from '../../components/pipe-system-breakdown/pipe-system-breakdown.component';
+import { DependentMaterialsComponent } from '../../components/dependent-materials/dependent-materials.component';
+import { SummaryTableComponent } from '../../components/summary-table/summary-table.component';
 import { forkJoin } from 'rxjs';
 
 // Preview interfaces
@@ -29,7 +34,7 @@ interface CategoryCompanies {
 @Component({
   selector: 'app-project-new',
   standalone: true,
-  imports: [CommonModule, FormsModule, PriceBreakdownComponent],
+  imports: [CommonModule, FormsModule, PriceBreakdownComponent, PipeSystemBreakdownComponent, DependentMaterialsComponent, SummaryTableComponent],
   templateUrl: './project-new.component.html',
   styleUrls: ['./project-new.component.scss']
 })
@@ -187,6 +192,24 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
 
   selectedSupplierCount = computed(() => {
     return this.selectedStages().reduce((sum, s) => sum + (s.supplierCount || 0), 0);
+  });
+
+  hasPipeSystems = computed(() => {
+    const r = this.result();
+    return r?.pipeSystems != null && r.pipeSystems.length > 0;
+  });
+
+  // Tab system for results section
+  activeTab = signal<'work' | 'materials' | 'summary'>('work');
+
+  hasDependentMaterials = computed(() => {
+    const r = this.result();
+    return r?.dependentMaterials != null && r.dependentMaterials.length > 0;
+  });
+
+  dependentMaterialsCount = computed(() => {
+    const r = this.result();
+    return r?.dependentMaterials?.length || 0;
   });
 
   wordCount = computed(() => {
@@ -483,6 +506,14 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
       expanded: false
     }));
 
+    // Initialize pipe system expanded state
+    if (res.pipeSystems) {
+      res.pipeSystems = res.pipeSystems.map(ps => ({
+        ...ps,
+        expanded: false
+      }));
+    }
+
     this.result.set(res);
     this.isLoading.set(false);
     this.showQuantityEditor.set(true);
@@ -694,6 +725,10 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     const max = stage.priceEstimateMax || 1;
     const median = stage.priceEstimateMedian || 0;
     return ((median - min) / (max - min)) * 100;
+  }
+
+  setTab(tab: 'work' | 'materials' | 'summary'): void {
+    this.activeTab.set(tab);
   }
 
   resetForm(): void {

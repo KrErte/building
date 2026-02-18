@@ -1366,6 +1366,15 @@ app-price-breakdown {
 }
 
 // ============================================
+// PIPE SYSTEMS WRAPPER
+// ============================================
+
+.pipe-systems-wrapper {
+  margin: 24px 0;
+  padding: 24px;
+}
+
+// ============================================
 // SUMMARY CARD
 // ============================================
 
@@ -2076,6 +2085,93 @@ app-price-breakdown {
     font-size: 14px;
     animation: none;
   }
+}
+
+// ============================================
+// SECTION TABS (Work / Materials / Summary)
+// ============================================
+
+.section-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+    justify-content: center;
+
+    svg {
+      opacity: 0.6;
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: #cbd5e1;
+    }
+
+    &.active {
+      background: rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      font-weight: 600;
+
+      svg {
+        opacity: 1;
+      }
+    }
+  }
+
+  .tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: rgba(99, 102, 241, 0.3);
+    border-radius: 10px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #a5b4fc;
+  }
+}
+
+.materials-tab-content,
+.summary-tab-content {
+  padding: 28px;
+  border-radius: 16px;
+}
+
+// Summary card updated styles
+.summary-materials-line {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.summary-grand {
+  font-size: 16px;
+  font-weight: 700;
+  color: #a5b4fc;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(99, 102, 241, 0.2);
 }
 
 // ============================================

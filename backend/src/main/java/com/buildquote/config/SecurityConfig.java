@@ -62,6 +62,8 @@ public class SecurityConfig {
                 .requestMatchers("/h2-console/**").permitAll()
                 // Supplier onboarding (public, token-based) - fix path to match controller
                 .requestMatchers("/api/onboard/{token}").permitAll()
+                // Admin recipe management (requires authentication)
+                .requestMatchers("/api/admin/recipes/**").authenticated()
                 // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
