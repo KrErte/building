@@ -42,5 +42,8 @@ public class Bid {
     @Column(nullable = false)
     private String status = "RECEIVED"; // RECEIVED, UNDER_REVIEW, ACCEPTED, DECLINED, COUNTER_OFFERED
 
+    @Column(length = 20)
+    private String source = "FORM"; // FORM or EMAIL
+
     private LocalDateTime submittedAt = LocalDateTime.now();
 }

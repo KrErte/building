@@ -15,6 +15,10 @@ public class RfqCampaign {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id")
+    private Project project;
+
     private String title;
 
     @Column(columnDefinition = "TEXT")
@@ -30,6 +34,9 @@ public class RfqCampaign {
 
     @Column(nullable = false)
     private String status = "DRAFT"; // DRAFT, SENDING, ACTIVE, CLOSED, AWARDED
+
+    @Column(unique = true)
+    private String referenceCode;
 
     private Integer totalSent = 0;
     private Integer totalDelivered = 0;

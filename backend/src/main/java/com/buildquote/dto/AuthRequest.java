@@ -38,4 +38,27 @@ public class AuthRequest {
 
         private String phone;
     }
+
+    @Data
+    public static class RefreshRequest {
+        @NotBlank(message = "Refresh token is required")
+        private String refreshToken;
+    }
+
+    @Data
+    public static class ForgotPasswordRequest {
+        @NotBlank(message = "Email is required")
+        @Email(message = "Invalid email format")
+        private String email;
+    }
+
+    @Data
+    public static class ResetPasswordRequest {
+        @NotBlank(message = "Token is required")
+        private String token;
+
+        @NotBlank(message = "New password is required")
+        @Size(min = 8, message = "Password must be at least 8 characters")
+        private String newPassword;
+    }
 }

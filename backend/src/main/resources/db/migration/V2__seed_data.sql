@@ -20,7 +20,7 @@ VALUES
     (gen_random_uuid(), 'FACADE', 'm2', 35.00, 80.00, 55.00, 57.50, 15, 'Tallinn', 'SEED'),
     (gen_random_uuid(), 'LANDSCAPING', 'm2', 15.00, 40.00, 25.00, 27.50, 20, 'Tallinn', 'SEED'),
     (gen_random_uuid(), 'GENERAL_CONSTRUCTION', 'm2', 20.00, 50.00, 35.00, 35.00, 100, 'Tallinn', 'SEED')
-ON CONFLICT DO NOTHING;
+;
 
 -- Seed test suppliers
 INSERT INTO suppliers (id, company_name, email, phone, city, categories, source, google_rating, google_review_count, trust_score, is_verified)
@@ -35,4 +35,4 @@ VALUES
     (gen_random_uuid(), 'Küte & Ventilatsioon AS', 'kontakt@kuteventilatsioon.ee', '+372 5890 1234', 'Tallinn', 'HVAC', 'SEED', 4.2, 15, 68, false),
     (gen_random_uuid(), 'Aknad-Uksed Pro OÜ', 'pro@aknaduksed.ee', '+372 5901 2345', 'Tallinn', 'WINDOWS_DOORS', 'SEED', 4.6, 41, 79, true),
     (gen_random_uuid(), 'Aiaehitus Meister OÜ', 'aed@aiaehitus.ee', '+372 5012 3456', 'Tallinn', 'LANDSCAPING', 'SEED', 4.5, 23, 72, false)
-ON CONFLICT DO NOTHING;
+;

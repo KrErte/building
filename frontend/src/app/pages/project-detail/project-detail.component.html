@@ -10,15 +10,286 @@
     <div class="error-icon">&#9888;</div>
     <h2>Viga</h2>
     <p>{{ error() }}</p>
-    <a routerLink="/projects/new" class="btn btn-primary">Loo uus projekt</a>
+    <a routerLink="/projects" class="btn btn-primary">Tagasi projektidesse</a>
   </div>
 
-  <!-- Campaign Content -->
-  <div class="content" *ngIf="!isLoading() && campaign()">
+  <!-- ===== PROJECT MODE ===== -->
+  <div class="content" *ngIf="!isLoading() && !isCampaignMode() && project()">
     <!-- Header -->
     <header class="page-header">
       <div class="header-left">
-        <a routerLink="/projects/new" class="back-link">
+        <a routerLink="/projects" class="back-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          Projektid
+        </a>
+        <h1>{{ project()!.title }}</h1>
+        <div class="header-meta">
+          <span class="status-badge" [ngClass]="getProjectStatusClass(project()!.status)">
+            {{ getProjectStatusLabel(project()!.status) }}
+          </span>
+          <span class="meta-item" *ngIf="project()!.location">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            {{ project()!.location }}
+          </span>
+          <span class="meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            {{ formatDate(project()!.createdAt) }}
+          </span>
+        </div>
+      </div>
+      <div class="header-actions" *ngIf="!pipeline() || pipeline()!.status === 'FAILED' || pipeline()!.status === 'CANCELLED'">
+        <button class="btn btn-primary" (click)="startPipeline()" [disabled]="isStartingPipeline()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" *ngIf="!isStartingPipeline()">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <div class="spinner-small" *ngIf="isStartingPipeline()"></div>
+          {{ isStartingPipeline() ? 'Käivitan...' : (pipeline() ? 'Taaskäivita töövoog' : 'Käivita töövoog') }}
+        </button>
+      </div>
+    </header>
+
+    <!-- Validation Summary Banner -->
+    <div class="validation-banner" *ngIf="project()!.validationStatus" [ngClass]="project()!.validationStatus === 'PASSED' ? 'validation-passed' : 'validation-review'">
+      <div class="validation-content">
+        <span class="validation-icon">{{ project()!.validationStatus === 'PASSED' ? '&#10003;' : '&#9888;' }}</span>
+        <div class="validation-text">
+          <strong>{{ project()!.validationStatus === 'PASSED' ? 'Valideerimine labi' : 'Vajab ulevaatust' }}</strong>
+          <span *ngIf="project()!.parseConfidence">Usaldusvaartsus: {{ getConfidencePercent(project()!.parseConfidence) }}%</span>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-primary" *ngIf="isPipelinePausedForReview()" (click)="resumePipeline()">
+        Vaata ule ja jatka
+      </button>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ project()!.stages.length }}</span>
+          <span class="stat-label">Etapid</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ formatCurrency(project()!.totalEstimateMin) }}</span>
+          <span class="stat-label">Min hind</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ formatCurrency(project()!.totalEstimateMax) }}</span>
+          <span class="stat-label">Max hind</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon yellow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ project()!.totalSupplierCount }}</span>
+          <span class="stat-label">Tegijad</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section Tabs -->
+    <div class="section-tabs">
+      <button class="section-tab" [class.active]="activeSection() === 'stages'" (click)="activeSection.set('stages')">
+        Etapid
+      </button>
+      <button class="section-tab" [class.active]="activeSection() === 'pipeline'" (click)="activeSection.set('pipeline')" *ngIf="pipeline()">
+        Töövoog
+      </button>
+      <button class="section-tab" [class.active]="activeSection() === 'bids'" (click)="activeSection.set('bids')">
+        Pakkumised
+      </button>
+    </div>
+
+    <!-- Stages Section -->
+    <div class="stages-section" *ngIf="activeSection() === 'stages'">
+      <div class="stage-card" *ngFor="let stage of project()!.stages; let i = index"
+           [class.stage-deferred]="stage.procurementStatus === 'DEFERRED'">
+        <div class="stage-header">
+          <div class="stage-icon">{{ getCategoryIcon(stage.category) }}</div>
+          <div class="stage-info">
+            <span class="stage-order">#{{ stage.stageOrder || i + 1 }}</span>
+            <h3>{{ stage.name }}</h3>
+            <span class="stage-category">{{ getCategoryLabel(stage.category) }}</span>
+            <span class="procurement-badge" *ngIf="stage.procurementStatus === 'DEFERRED'" [ngClass]="getProcurementStatusClass(stage.procurementStatus)">
+              {{ getProcurementStatusLabel(stage.procurementStatus) }}
+              <span *ngIf="stage.plannedStartDate"> - {{ formatDate(stage.plannedStartDate) }}</span>
+            </span>
+          </div>
+          <div class="stage-right">
+            <div class="stage-price">
+              <span class="price-range">{{ formatCurrency(stage.priceEstimateMin) }} – {{ formatCurrency(stage.priceEstimateMax) }}</span>
+              <span class="price-median">Mediaan: {{ formatCurrency(stage.priceEstimateMedian) }}</span>
+            </div>
+            <!-- Validation confidence indicator -->
+            <div class="confidence-indicator" *ngIf="stage.validationConfidence != null">
+              <div class="confidence-bar">
+                <div class="confidence-fill" [ngClass]="getConfidenceClass(stage.validationConfidence)"
+                     [style.width.%]="getConfidencePercent(stage.validationConfidence)"></div>
+              </div>
+              <span class="confidence-label">{{ getConfidencePercent(stage.validationConfidence) }}%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Validation issues -->
+        <div class="validation-issues" *ngIf="stage.validationIssues">
+          <div class="issue-item" *ngFor="let issue of getValidationIssues(stage.validationIssues)">
+            <span class="issue-icon">&#9888;</span> {{ issue }}
+          </div>
+        </div>
+
+        <div class="stage-details">
+          <div class="stage-detail">
+            <span class="detail-label">Maht</span>
+            <span class="detail-value">{{ stage.quantity }} {{ stage.unit }}</span>
+          </div>
+          <div class="stage-detail">
+            <span class="detail-label">Tegijad</span>
+            <span class="detail-value">{{ stage.supplierCount }}</span>
+          </div>
+          <div class="stage-detail" *ngIf="stage.emtakCode">
+            <span class="detail-label">EMTAK</span>
+            <span class="detail-value">{{ stage.emtakCode }}</span>
+          </div>
+          <div class="stage-detail" *ngIf="stage.plannedStartDate">
+            <span class="detail-label">Planeeritud algus</span>
+            <span class="detail-value">{{ formatDate(stage.plannedStartDate) }}</span>
+          </div>
+          <div class="stage-detail" *ngIf="stage.plannedDurationDays">
+            <span class="detail-label">Kestus</span>
+            <span class="detail-value">{{ stage.plannedDurationDays }} paeva</span>
+          </div>
+          <div class="stage-detail" *ngIf="stage.description">
+            <span class="detail-label">Kirjeldus</span>
+            <span class="detail-value description">{{ stage.description }}</span>
+          </div>
+        </div>
+
+        <!-- Matched Suppliers Score Bars -->
+        <div class="matched-suppliers" *ngIf="parseMatchedSuppliers(stage.matchedSuppliersJson).length > 0">
+          <h4>Sobitatud tarnijad</h4>
+          <div class="supplier-score-list">
+            <div class="supplier-score-item" *ngFor="let supplier of parseMatchedSuppliers(stage.matchedSuppliersJson).slice(0, 5)">
+              <div class="supplier-score-info">
+                <span class="supplier-score-name">{{ supplier.companyName }}</span>
+                <span class="tax-debt-flag" *ngIf="supplier.hasTaxDebt">MAKSUVÕLG</span>
+              </div>
+              <div class="score-bar-container">
+                <div class="score-bar" [ngClass]="getScoreClass(supplier.totalScore)"
+                     [style.width.%]="supplier.totalScore"></div>
+              </div>
+              <span class="score-value" [ngClass]="getScoreClass(supplier.totalScore)">{{ supplier.totalScore }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipeline Section -->
+    <div class="pipeline-section" *ngIf="activeSection() === 'pipeline' && pipeline()">
+      <div class="pipeline-header">
+        <div class="pipeline-status">
+          <span class="status-badge" [ngClass]="getPipelineStatusClass(pipeline()!.status)">
+            {{ getPipelineStatusLabel(pipeline()!.status) }}
+          </span>
+          <span class="pipeline-progress">{{ pipeline()!.progressPercent }}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="pipeline()!.progressPercent"></div>
+        </div>
+        <!-- Review and Continue button when paused at VALIDATE_PARSE -->
+        <div class="pipeline-actions" *ngIf="isPipelinePausedForReview()">
+          <div class="review-notice">
+            Töövoog on peatatud andmete ülevaatamiseks. Kontrollige etappide andmed ja jätkake.
+          </div>
+          <button class="btn btn-primary" (click)="resumePipeline()">
+            Vaata üle ja jätka
+          </button>
+        </div>
+      </div>
+
+      <div class="pipeline-steps">
+        <div class="pipeline-step" *ngFor="let step of pipeline()!.steps; let i = index"
+             [ngClass]="getStepStatusClass(step.status)">
+          <div class="step-indicator">
+            <div class="step-icon">
+              <span *ngIf="step.status === 'RUNNING'" class="step-spinner"></span>
+              <span *ngIf="step.status !== 'RUNNING'">{{ getStepStatusIcon(step.status) }}</span>
+            </div>
+            <div class="step-line" *ngIf="i < pipeline()!.steps.length - 1"></div>
+          </div>
+          <div class="step-content">
+            <span class="step-name">{{ getStepLabel(step.stepType) || step.stepName }}</span>
+            <span class="step-time" *ngIf="step.completedAt">{{ formatDateTime(step.completedAt) }}</span>
+            <span class="step-error" *ngIf="step.errorMessage">{{ step.errorMessage }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bids Section (Project Mode) -->
+    <div class="bids-section" *ngIf="activeSection() === 'bids'">
+      <div class="no-bids" *ngIf="bids().length === 0">
+        <div class="no-bids-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+            <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+          </svg>
+        </div>
+        <h3>Pakkumisi pole veel</h3>
+        <p>Käivita töövoog, et saata hinnapäringud tegijatele.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CAMPAIGN MODE ===== -->
+  <div class="content" *ngIf="!isLoading() && isCampaignMode() && campaign()">
+    <!-- Header -->
+    <header class="page-header">
+      <div class="header-left">
+        <a routerLink="/projects" class="back-link">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15 18 9 12 15 6"/>
           </svg>

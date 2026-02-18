@@ -23,6 +23,12 @@ export const routes: Routes = [
       .then(m => m.ProjectDetailComponent)
   },
   {
+    path: 'pipelines',
+    loadComponent: () => import('./pages/pipelines/pipelines.component')
+      .then(m => m.PipelinesComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'wizard',
     loadComponent: () => import('./pages/wizard/wizard.component')
       .then(m => m.WizardComponent),

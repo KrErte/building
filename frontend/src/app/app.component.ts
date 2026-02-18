@@ -35,6 +35,12 @@ import { AuthService } from './services/auth.service';
               </svg>
               <span>Projektid</span>
             </a>
+            <a routerLink="/pipelines" routerLinkActive="active" class="nav-item">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+              <span>Töövood</span>
+            </a>
             <a routerLink="/companies" routerLinkActive="active" class="nav-item">
               <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 21h18"/>
@@ -42,7 +48,7 @@ import { AuthService } from './services/auth.service';
                 <path d="M19 21V11l-6-4"/>
                 <path d="M9 9v.01"/><path d="M9 12v.01"/><path d="M9 15v.01"/><path d="M9 18v.01"/>
               </svg>
-              <span>Ettevotted</span>
+              <span>Ettevõtted</span>
             </a>
           </nav>
 

@@ -60,6 +60,9 @@ public class User {
     private int rfqsThisMonth;
     private LocalDateTime monthResetAt;
 
+    // Multi-tenancy
+    private UUID currentOrganizationId;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

@@ -28,4 +28,9 @@ public class CompanyDto {
     private Integer googleReviewCount;
     private Integer trustScore;
     private Boolean isVerified;
+
+    // Enrichment fields (from Phase 5)
+    private String llmSummary;
+    private Integer riskScore;
+    private Integer reliabilityScore;
 }

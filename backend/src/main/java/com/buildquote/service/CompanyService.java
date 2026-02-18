@@ -2,7 +2,9 @@ package com.buildquote.service;
 
 import com.buildquote.dto.CompanyDto;
 import com.buildquote.dto.CompanyPageResponse;
+import com.buildquote.entity.CompanyEnrichment;
 import com.buildquote.entity.Supplier;
+import com.buildquote.repository.CompanyEnrichmentRepository;
 import com.buildquote.repository.SupplierRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.data.domain.Page;
@@ -16,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,12 +26,15 @@ public class CompanyService {
 
     private final SupplierRepository supplierRepository;
     private final SupplierSearchService supplierSearchService;
+    private final CompanyEnrichmentRepository enrichmentRepository;
     private final JdbcTemplate jdbcTemplate;
     private volatile boolean crawlerSchemaExists = false;
 
-    public CompanyService(SupplierRepository supplierRepository, SupplierSearchService supplierSearchService, JdbcTemplate jdbcTemplate) {
+    public CompanyService(SupplierRepository supplierRepository, SupplierSearchService supplierSearchService,
+                          CompanyEnrichmentRepository enrichmentRepository, JdbcTemplate jdbcTemplate) {
         this.supplierRepository = supplierRepository;
         this.supplierSearchService = supplierSearchService;
+        this.enrichmentRepository = enrichmentRepository;
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -264,7 +270,7 @@ public class CompanyService {
     }
 
     private CompanyDto toDto(Supplier supplier) {
-        return CompanyDto.builder()
+        CompanyDto dto = CompanyDto.builder()
                 .id(supplier.getId() != null ? supplier.getId().toString() : null)
                 .companyName(supplier.getCompanyName())
                 .contactPerson(supplier.getContactPerson())
@@ -282,5 +288,17 @@ public class CompanyService {
                 .trustScore(supplier.getTrustScore())
                 .isVerified(supplier.getIsVerified())
                 .build();
+
+        // Join enrichment data if available
+        if (supplier.getId() != null) {
+            Optional<CompanyEnrichment> enrichment = enrichmentRepository.findBySupplierId(supplier.getId());
+            enrichment.ifPresent(e -> {
+                dto.setLlmSummary(e.getLlmSummary());
+                dto.setRiskScore(e.getRiskScore());
+                dto.setReliabilityScore(e.getReliabilityScore());
+            });
+        }
+
+        return dto;
     }
 }

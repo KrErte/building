@@ -26,19 +26,22 @@ public class RfqService {
     private final SupplierRepository supplierRepository;
     private final MarketPriceRepository marketPriceRepository;
     private final EmailService emailService;
+    private final MarketPriceLearningService marketPriceLearningService;
 
     public RfqService(RfqCampaignRepository campaignRepository,
                       RfqEmailRepository emailRepository,
                       BidRepository bidRepository,
                       SupplierRepository supplierRepository,
                       MarketPriceRepository marketPriceRepository,
-                      EmailService emailService) {
+                      EmailService emailService,
+                      MarketPriceLearningService marketPriceLearningService) {
         this.campaignRepository = campaignRepository;
         this.emailRepository = emailRepository;
         this.bidRepository = bidRepository;
         this.supplierRepository = supplierRepository;
         this.marketPriceRepository = marketPriceRepository;
         this.emailService = emailService;
+        this.marketPriceLearningService = marketPriceLearningService;
     }
 
     @Transactional
@@ -202,6 +205,13 @@ public class RfqService {
         campaignRepository.save(campaign);
 
         log.info("Bid {} submitted for campaign {} by {}", bid.getId(), campaign.getId(), rfqEmail.getSupplierName());
+
+        // Trigger market price learning
+        try {
+            marketPriceLearningService.onBidReceived(bid);
+        } catch (Exception e) {
+            log.warn("Market price learning failed for bid {}: {}", bid.getId(), e.getMessage());
+        }
 
         // Send notification email to project owner
         sendBidNotificationEmail(bid, campaign);
@@ -378,6 +388,14 @@ public class RfqService {
                 .status(bid.getStatus())
                 .submittedAt(bid.getSubmittedAt().format(DateTimeFormatter.ISO_DATE_TIME))
                 .build();
+    }
+
+    @Transactional
+    public void setReferenceCode(String campaignId, String referenceCode) {
+        RfqCampaign campaign = campaignRepository.findById(UUID.fromString(campaignId))
+                .orElseThrow(() -> new RuntimeException("Campaign not found"));
+        campaign.setReferenceCode(referenceCode);
+        campaignRepository.save(campaign);
     }
 
     private String generateToken() {

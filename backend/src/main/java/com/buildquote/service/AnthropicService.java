@@ -29,6 +29,31 @@ public class AnthropicService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private AiCacheService aiCacheService;
+
+    /**
+     * Call Claude with automatic caching support.
+     * If AiCacheService is available, checks cache first and stores response after.
+     */
+    public String callClaudeCached(String prompt) {
+        if (aiCacheService != null) {
+            var cached = aiCacheService.getCached(prompt, model);
+            if (cached.isPresent()) {
+                log.debug("Cache hit for Claude call");
+                return cached.get();
+            }
+        }
+
+        String response = callClaude(prompt);
+
+        if (response != null && aiCacheService != null) {
+            aiCacheService.cache(prompt, model, response);
+        }
+
+        return response;
+    }
+
     public String callClaude(String prompt) {
         try {
             HttpHeaders headers = new HttpHeaders();

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpEventType, HttpEvent, HttpRequest } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
-import { ProjectParseResult, ProjectParseRequest } from '../models/project.model';
+import { ProjectParseResult, ProjectParseRequest, Project } from '../models/project.model';
 import { environment } from '../../environments/environment';
 
 export interface UploadProgress {
@@ -214,5 +214,32 @@ export class ProjectService {
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+  }
+
+  // Persistent project endpoints
+  parseAndSave(description: string): Observable<Project> {
+    return this.http.post<Project>(`${this.apiUrl}/projects/parse-and-save`, { description });
+  }
+
+  parseFileAndSave(file: File): Observable<Project> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<Project>(`${this.apiUrl}/projects/parse-file-and-save`, formData);
+  }
+
+  listProjects(): Observable<Project[]> {
+    return this.http.get<Project[]>(`${this.apiUrl}/projects`);
+  }
+
+  getProject(id: string): Observable<Project> {
+    return this.http.get<Project>(`${this.apiUrl}/projects/${id}`);
+  }
+
+  updateProject(id: string, data: Partial<Project>): Observable<Project> {
+    return this.http.put<Project>(`${this.apiUrl}/projects/${id}`, data);
+  }
+
+  deleteProject(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/projects/${id}`);
   }
 }
