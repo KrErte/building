@@ -23,5 +23,19 @@ frontend/build.log
 Thumbs.db
 nul
 
+# JVM crash logs
+hs_err_pid*.log
+replay_pid*.log
+
+# Temp SSH/SCP/deploy logs
+ssh_*.txt
+scp_*.txt
+ssh_*.log
+
+# Temp deploy artifacts
+frontend-dist.tar.gz
+frontend-dist.zip
+live_index.html
+
 # Claude
 .claude/
