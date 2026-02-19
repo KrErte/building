@@ -1,5 +1,6 @@
 import { Component, signal, computed, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
 import { RfqService } from '../../services/rfq.service';
@@ -7,7 +8,7 @@ import { PipelineService } from '../../services/pipeline.service';
 import { AnalysisService } from '../../services/analysis.service';
 import {
   Project, Pipeline, PipelineStep, ScoredSupplier,
-  ComparisonResult, NegotiationStrategy,
+  ComparisonResult, NegotiationStrategy, NegotiationRound,
   CATEGORY_LABELS, CATEGORY_ICONS, PIPELINE_STEP_LABELS
 } from '../../models/project.model';
 import { Campaign, Bid } from '../../models/rfq.model';
@@ -15,7 +16,7 @@ import { Campaign, Bid } from '../../models/rfq.model';
 @Component({
   selector: 'app-project-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './project-detail.component.html',
   styleUrls: ['./project-detail.component.scss']
 })
@@ -30,6 +31,14 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
   campaignId = signal<string>('');
   campaign = signal<Campaign | null>(null);
   bids = signal<Bid[]>([]);
+
+  // Negotiation workflow signals
+  negotiationRounds = signal<NegotiationRound[]>([]);
+  selectedBidForNegotiation = signal<string | null>(null);
+  negotiationTargetPrice = signal<number | null>(null);
+  negotiationMessage = signal<string>('');
+  isSendingNegotiation = signal(false);
+  isLoadingRounds = signal(false);
 
   // UI state
   isLoading = signal(true);
@@ -219,7 +228,7 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Error loading campaign:', err);
-        this.error.set('Projekti laadimine ebaõnnestus');
+        this.error.set('Projekti laadimine ebaonnestus');
         this.isLoading.set(false);
       }
     });
@@ -260,6 +269,58 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
       },
       error: () => this.isLoadingNegotiation.set(false)
     });
+  }
+
+  // Negotiation workflow
+  loadNegotiationRounds(bidId: string): void {
+    this.isLoadingRounds.set(true);
+    this.selectedBidForNegotiation.set(bidId);
+    this.analysisService.getNegotiationRounds(bidId).subscribe({
+      next: (rounds) => {
+        this.negotiationRounds.set(rounds);
+        this.isLoadingRounds.set(false);
+      },
+      error: () => this.isLoadingRounds.set(false)
+    });
+  }
+
+  sendNegotiation(bidId: string): void {
+    const targetPrice = this.negotiationTargetPrice();
+    if (!targetPrice) return;
+
+    this.isSendingNegotiation.set(true);
+    const request = {
+      targetPrice,
+      message: this.negotiationMessage() || undefined,
+      tone: 'FRIENDLY'
+    };
+
+    this.analysisService.sendNegotiation(bidId, request).subscribe({
+      next: (round) => {
+        this.negotiationRounds.update(rounds => [...rounds, round]);
+        this.negotiationMessage.set('');
+        this.isSendingNegotiation.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to send negotiation:', err);
+        this.isSendingNegotiation.set(false);
+      }
+    });
+  }
+
+  openNegotiationPanel(bidId: string, suggestedTargetPrice?: number): void {
+    this.selectedBidForNegotiation.set(bidId);
+    if (suggestedTargetPrice) {
+      this.negotiationTargetPrice.set(suggestedTargetPrice);
+    }
+    this.loadNegotiationRounds(bidId);
+  }
+
+  closeNegotiationPanel(): void {
+    this.selectedBidForNegotiation.set(null);
+    this.negotiationRounds.set([]);
+    this.negotiationTargetPrice.set(null);
+    this.negotiationMessage.set('');
   }
 
   // Formatting helpers
@@ -330,9 +391,9 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
   getProjectStatusLabel(status: string): string {
     switch (status) {
       case 'DRAFT': return 'Mustand';
-      case 'PARSED': return 'Analüüsitud';
-      case 'QUOTING': return 'Päringud';
-      case 'COMPLETED': return 'Lõppenud';
+      case 'PARSED': return 'Analuusitud';
+      case 'QUOTING': return 'Paringud';
+      case 'COMPLETED': return 'Loppenud';
       case 'ARCHIVED': return 'Arhiveeritud';
       default: return status;
     }
@@ -352,11 +413,11 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
   getPipelineStatusLabel(status: string): string {
     switch (status) {
       case 'CREATED': return 'Loodud';
-      case 'RUNNING': return 'Töötab';
+      case 'RUNNING': return 'Tootab';
       case 'PAUSED': return 'Peatatud';
       case 'COMPLETED': return 'Valmis';
-      case 'FAILED': return 'Ebaõnnestus';
-      case 'CANCELLED': return 'Tühistatud';
+      case 'FAILED': return 'Ebaonnestus';
+      case 'CANCELLED': return 'Tuhistatud';
       default: return status;
     }
   }
@@ -373,9 +434,9 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
 
   getVerdictLabel(verdict: string | undefined): string {
     switch (verdict) {
-      case 'GREAT_DEAL': return 'Suurepärane hind';
+      case 'GREAT_DEAL': return 'Suureparane hind';
       case 'FAIR': return 'Aus hind';
-      case 'OVERPRICED': return 'Ülehinnatad';
+      case 'OVERPRICED': return 'Ulehinnatad';
       case 'RED_FLAG': return 'Kahtlane';
       default: return 'Hindamata';
     }
@@ -395,8 +456,8 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
     switch (status) {
       case 'ACTIVE': return 'Aktiivne';
       case 'SENDING': return 'Saadan...';
-      case 'COMPLETED': return 'Lõppenud';
-      case 'CANCELLED': return 'Tühistatud';
+      case 'COMPLETED': return 'Loppenud';
+      case 'CANCELLED': return 'Tuhistatud';
       default: return status;
     }
   }
@@ -457,8 +518,8 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
   getProcurementStatusLabel(status: string | undefined): string {
     switch (status) {
       case 'ACTIVE': return 'Aktiivne';
-      case 'DEFERRED': return 'Lükatud edasi';
-      case 'COMPLETED': return 'Lõpetatud';
+      case 'DEFERRED': return 'Lukatud edasi';
+      case 'COMPLETED': return 'Lopetatud';
       default: return 'Aktiivne';
     }
   }
@@ -477,5 +538,41 @@ export class ProjectDetailComponent implements OnInit, OnDestroy {
     if (!p || p.status !== 'PAUSED') return false;
     const currentStep = p.steps[p.currentStep];
     return currentStep?.stepType === 'VALIDATE_PARSE';
+  }
+
+  isPipelineFailed(): boolean {
+    const p = this.pipeline();
+    return p?.status === 'FAILED';
+  }
+
+  getFailedSteps(): PipelineStep[] {
+    const p = this.pipeline();
+    if (!p) return [];
+    return p.steps.filter(s => s.status === 'FAILED');
+  }
+
+  // Price range bar helpers
+  getPriceBarPosition(value: number, min: number, max: number): number {
+    if (max === min) return 50;
+    return Math.round(((value - min) / (max - min)) * 100);
+  }
+
+  getNegotiationRoundStatusLabel(status: string): string {
+    switch (status) {
+      case 'DRAFT': return 'Mustand';
+      case 'SENT': return 'Saadetud';
+      case 'REPLIED': return 'Vastatud';
+      case 'FAILED': return 'Ebaonnestus';
+      default: return status;
+    }
+  }
+
+  getNegotiationRoundStatusClass(status: string): string {
+    switch (status) {
+      case 'SENT': return 'round-sent';
+      case 'REPLIED': return 'round-replied';
+      case 'FAILED': return 'round-failed';
+      default: return 'round-draft';
+    }
   }
 }

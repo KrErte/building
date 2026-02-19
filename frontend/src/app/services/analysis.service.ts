@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ComparisonResult, NegotiationStrategy, CompanyEnrichment } from '../models/project.model';
+import { ComparisonResult, NegotiationStrategy, CompanyEnrichment, NegotiationRound } from '../models/project.model';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -22,6 +22,14 @@ export class AnalysisService {
 
   getNegotiationStrategy(bidId: string): Observable<NegotiationStrategy> {
     return this.http.get<NegotiationStrategy>(`${this.apiUrl}/analysis/bid/${bidId}/negotiate`);
+  }
+
+  sendNegotiation(bidId: string, request: { targetPrice: number; message?: string; tone?: string }): Observable<NegotiationRound> {
+    return this.http.post<NegotiationRound>(`${this.apiUrl}/analysis/bid/${bidId}/negotiate/send`, request);
+  }
+
+  getNegotiationRounds(bidId: string): Observable<NegotiationRound[]> {
+    return this.http.get<NegotiationRound[]>(`${this.apiUrl}/analysis/bid/${bidId}/negotiate/rounds`);
   }
 
   getEnrichment(supplierId: string): Observable<CompanyEnrichment> {

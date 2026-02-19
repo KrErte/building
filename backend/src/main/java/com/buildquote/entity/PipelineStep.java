@@ -56,6 +56,7 @@ public class PipelineStep {
 
     private LocalDateTime startedAt;
     private LocalDateTime completedAt;
+    private LocalDateTime nextRetryAt;
 
     @PrePersist
     protected void onCreate() {

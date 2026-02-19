@@ -10,6 +10,7 @@ import {
   ProjectStage,
   DependentMaterial,
   PipeSystem,
+  PipeLengthSummary,
   CATEGORY_LABELS,
   CATEGORY_ICONS
 } from '../../models/project.model';
@@ -17,6 +18,7 @@ import { RfqRequest } from '../../models/rfq.model';
 import { PriceBreakdownComponent } from '../../components/price-breakdown/price-breakdown.component';
 import { PipeSystemBreakdownComponent } from '../../components/pipe-system-breakdown/pipe-system-breakdown.component';
 import { DependentMaterialsComponent } from '../../components/dependent-materials/dependent-materials.component';
+import { PipeLengthSummaryComponent } from '../../components/pipe-length-summary/pipe-length-summary.component';
 import { SummaryTableComponent } from '../../components/summary-table/summary-table.component';
 import { forkJoin } from 'rxjs';
 
@@ -34,7 +36,7 @@ interface CategoryCompanies {
 @Component({
   selector: 'app-project-new',
   standalone: true,
-  imports: [CommonModule, FormsModule, PriceBreakdownComponent, PipeSystemBreakdownComponent, DependentMaterialsComponent, SummaryTableComponent],
+  imports: [CommonModule, FormsModule, PriceBreakdownComponent, PipeSystemBreakdownComponent, DependentMaterialsComponent, PipeLengthSummaryComponent, SummaryTableComponent],
   templateUrl: './project-new.component.html',
   styleUrls: ['./project-new.component.scss']
 })
@@ -43,8 +45,8 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
   @ViewChild('textarea') textarea!: ElementRef<HTMLTextAreaElement>;
 
   description = signal('');
-  selectedFile = signal<File | null>(null);
-  filePreview = signal<string | null>(null);
+  selectedFiles = signal<File[]>([]);
+  filePreviews = signal<Map<string, string>>(new Map());
   isLoading = signal(false);
   result = signal<ProjectParseResult | null>(null);
   error = signal<string | null>(null);
@@ -212,6 +214,11 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     return r?.dependentMaterials?.length || 0;
   });
 
+  hasPipeLengths = computed(() => {
+    const r = this.result();
+    return r?.pipeLengthSummaries != null && r.pipeLengthSummaries.length > 0;
+  });
+
   wordCount = computed(() => {
     const text = this.description();
     if (!text.trim()) return 0;
@@ -315,18 +322,22 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
 
     const files = event.dataTransfer?.files;
     if (files && files.length > 0) {
-      this.handleFile(files[0]);
+      for (let i = 0; i < files.length; i++) {
+        this.addFile(files[i]);
+      }
     }
   }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.handleFile(input.files[0]);
+      for (let i = 0; i < input.files.length; i++) {
+        this.addFile(input.files[i]);
+      }
     }
   }
 
-  private handleFile(file: File): void {
+  private addFile(file: File): void {
     // Supported file extensions (including ZIP for compressed IFC)
     const supportedExtensions = /\.(pdf|docx?|txt|jpe?g|png|gif|bmp|webp|ifc|dwg|dxf|rvt|zip)$/i;
 
@@ -344,21 +355,29 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.selectedFile.set(file);
+    // Check for duplicate filename
+    const existing = this.selectedFiles();
+    if (existing.some(f => f.name === file.name && f.size === file.size)) {
+      return; // Skip duplicate
+    }
+
+    this.selectedFiles.set([...existing, file]);
     this.error.set(null);
 
-    // Set appropriate loading messages based on file type
-    this.setLoadingMessagesForFile(file.name);
+    // Set loading messages based on first file type
+    if (existing.length === 0) {
+      this.setLoadingMessagesForFile(file.name);
+    }
 
     // Generate preview for images
     if (file.type.startsWith('image/') || this.isImageFile(file.name)) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        this.filePreview.set(e.target?.result as string);
+        const previews = new Map(this.filePreviews());
+        previews.set(file.name, e.target?.result as string);
+        this.filePreviews.set(previews);
       };
       reader.readAsDataURL(file);
-    } else {
-      this.filePreview.set(null);
     }
   }
 
@@ -423,9 +442,18 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     return 'Fail';
   }
 
-  removeFile(): void {
-    this.selectedFile.set(null);
-    this.filePreview.set(null);
+  removeFile(file?: File): void {
+    if (file) {
+      // Remove specific file
+      this.selectedFiles.set(this.selectedFiles().filter(f => f !== file));
+      const previews = new Map(this.filePreviews());
+      previews.delete(file.name);
+      this.filePreviews.set(previews);
+    } else {
+      // Remove all
+      this.selectedFiles.set([]);
+      this.filePreviews.set(new Map());
+    }
     if (this.fileInput) {
       this.fileInput.nativeElement.value = '';
     }
@@ -435,6 +463,14 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     this.fileInput.nativeElement.click();
   }
 
+  getTotalFileSize(): number {
+    return this.selectedFiles().reduce((sum, f) => sum + f.size, 0);
+  }
+
+  getFilePreview(file: File): string | null {
+    return this.filePreviews().get(file.name) || null;
+  }
+
   parseProject(): void {
     this.error.set(null);
     this.isLoading.set(true);
@@ -442,12 +478,12 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     this.loadingMessageIndex.set(0);
     this.loadingText.set(this.loadingMessages[0]);
 
-    const file = this.selectedFile();
-    if (file) {
+    const files = this.selectedFiles();
+    if (files.length > 0) {
       // Use progress tracking for file uploads
       this.isUploading.set(true);
-      this.projectService.parseFromFileWithProgress(
-        file,
+      this.projectService.parseFromFilesWithProgress(
+        files,
         (progress) => {
           this.uploadProgress.set(progress);
           if (progress.phase === 'processing' && progress.processingStep) {
@@ -733,8 +769,8 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
 
   resetForm(): void {
     this.description.set('');
-    this.selectedFile.set(null);
-    this.filePreview.set(null);
+    this.selectedFiles.set([]);
+    this.filePreviews.set(new Map());
     this.result.set(null);
     this.error.set(null);
     this.rfqSent.set(false);

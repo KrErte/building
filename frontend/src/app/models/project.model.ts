@@ -52,6 +52,21 @@ export interface DependentMaterial {
   sourceStages: string[];
 }
 
+export interface PipeLengthSummary {
+  color: string;        // PURPLE, BROWN, BLUE
+  colorLabel: string;   // Lillad torud, Pruunid torud, Sinised torud
+  description: string;
+  totalLengthM: number;
+  pipes: PipeLengthItem[];
+}
+
+export interface PipeLengthItem {
+  name: string;
+  lengthM: number;
+  diameter: string;
+  sourceStages: string[];
+}
+
 export interface MaterialSummary {
   name: string;
   type: 'WORK' | 'MATERIAL';
@@ -73,6 +88,7 @@ export interface ProjectParseResult {
   totalEstimateMax: number;
   totalSupplierCount: number;
   dependentMaterials: DependentMaterial[] | null;
+  pipeLengthSummaries: PipeLengthSummary[] | null;
   summary: MaterialSummary[] | null;
   materialsTotalMin: number;
   materialsTotalMax: number;
@@ -169,6 +185,7 @@ export interface PipelineStep {
   retryCount: number;
   startedAt: string | null;
   completedAt: string | null;
+  nextRetryAt: string | null;
 }
 
 // Analysis (from Phase 3)
@@ -182,6 +199,8 @@ export interface ComparisonResult {
   medianPrice: number;
   rankings: BidRanking[];
   riskFlags: RiskFlag[];
+  negotiationTargets: ComparisonNegotiationTarget[];
+  priceRange: PriceRange | null;
 }
 
 export interface BidRanking {
@@ -189,11 +208,53 @@ export interface BidRanking {
   rank: number;
   score: number;
   reason: string;
+  weightedScore: number | null;
+  completeness: number | null;
+  priceAssessment: string | null;
+  redFlags: string[];
+  lineItemAnalysis: LineItemAnalysis[];
+}
+
+export interface LineItemAnalysis {
+  item: string;
+  bidPrice: number | null;
+  marketPrice: number | null;
+  assessment: string;
 }
 
 export interface RiskFlag {
   supplierName: string;
   flag: string;
+}
+
+export interface ComparisonNegotiationTarget {
+  supplierName: string;
+  bidId: string;
+  targetPrice: number;
+  discountPercent: number;
+  reasoning: string;
+  leverage: string;
+}
+
+export interface PriceRange {
+  min: number;
+  max: number;
+  median: number;
+  marketAssessment: string;
+}
+
+export interface NegotiationRound {
+  id: string;
+  bidId: string;
+  roundNumber: number;
+  ourSubject: string;
+  ourMessage: string;
+  theirReply: string | null;
+  proposedPrice: number;
+  status: 'DRAFT' | 'SENT' | 'REPLIED' | 'FAILED';
+  sentAt: string | null;
+  repliedAt: string | null;
+  createdAt: string;
 }
 
 export interface NegotiationStrategy {

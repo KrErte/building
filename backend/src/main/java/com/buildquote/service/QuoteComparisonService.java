@@ -4,8 +4,6 @@ import com.buildquote.dto.ComparisonResultDto;
 import com.buildquote.dto.NegotiationDto;
 import com.buildquote.entity.*;
 import com.buildquote.repository.*;
-import com.buildquote.repository.CompanyEnrichmentRepository;
-import com.buildquote.repository.SupplierRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +27,7 @@ public class QuoteComparisonService {
     private final MarketPriceRepository marketPriceRepository;
     private final CompanyEnrichmentRepository enrichmentRepository;
     private final SupplierRepository supplierRepository;
+    private final NegotiationTargetRepository negotiationTargetRepository;
     private final AnthropicService anthropicService;
     private final AiCacheService aiCacheService;
     private final ObjectMapper objectMapper;
@@ -47,25 +46,29 @@ public class QuoteComparisonService {
                     .build();
         }
 
-        // Build comparison prompt
+        // Build enhanced comparison prompt with weighted scoring
         StringBuilder prompt = new StringBuilder();
         prompt.append("Compare these construction bids for \"").append(campaign.getTitle()).append("\":\n");
         prompt.append("Category: ").append(campaign.getCategory()).append("\n");
         prompt.append("Location: ").append(campaign.getLocation()).append("\n");
         if (campaign.getMaxBudget() != null) {
-            prompt.append("Budget: €").append(campaign.getMaxBudget()).append("\n");
+            prompt.append("Budget: EUR ").append(campaign.getMaxBudget()).append("\n");
         }
         prompt.append("\nBids:\n");
 
         for (int i = 0; i < bids.size(); i++) {
             Bid bid = bids.get(i);
             prompt.append(i + 1).append(". ").append(bid.getSupplierName())
+                    .append(" (bidId: ").append(bid.getId()).append(")")
                     .append(": EUR ").append(bid.getPrice());
             if (bid.getTimelineDays() != null) {
                 prompt.append(", ").append(bid.getTimelineDays()).append(" days");
             }
             if (bid.getNotes() != null) {
                 prompt.append(", notes: ").append(bid.getNotes());
+            }
+            if (bid.getLineItems() != null) {
+                prompt.append(", lineItems: ").append(bid.getLineItems());
             }
 
             // Include enrichment/risk data per bidder
@@ -75,13 +78,48 @@ public class QuoteComparisonService {
 
         prompt.append("""
 
+            Use a WEIGHTED scoring system to evaluate each bid:
+            - Price competitiveness: 35%
+            - Completeness of bid: 20%
+            - Timeline/schedule: 15%
+            - Company quality (years, risk score, reliability): 15%
+            - Terms and conditions: 10%
+            - Response quality: 5%
+
+            For each bid, also analyze line items against market rates where possible.
+
             Provide analysis as JSON:
             {
-              "rankings": [{"supplierName": "str", "rank": 1, "score": 85, "reason": "str"}],
+              "rankings": [
+                {
+                  "supplierName": "str",
+                  "bidId": "uuid",
+                  "rank": 1,
+                  "score": 85,
+                  "weightedScore": 82.5,
+                  "completeness": 90.0,
+                  "priceAssessment": "FAIR|OVERPRICED|UNDERPRICED|GREAT_DEAL",
+                  "reason": "str",
+                  "redFlags": ["str"],
+                  "lineItemAnalysis": [
+                    {"item": "str", "bidPrice": 0, "marketPrice": 0, "assessment": "str"}
+                  ]
+                }
+              ],
               "bestValue": "supplier name",
               "riskFlags": [{"supplierName": "str", "flag": "str"}],
               "recommendation": "detailed recommendation text",
-              "priceSpread": {"min": 0, "max": 0, "median": 0}
+              "priceSpread": {"min": 0, "max": 0, "median": 0, "marketAssessment": "str"},
+              "negotiationTargets": [
+                {
+                  "supplierName": "str",
+                  "bidId": "uuid",
+                  "targetPrice": 0,
+                  "discountPercent": 0,
+                  "reasoning": "str",
+                  "leverage": "str"
+                }
+              ]
             }
             """);
 
@@ -110,6 +148,30 @@ public class QuoteComparisonService {
                 .build();
         bidAnalysisRepository.save(analysis);
 
+        // Persist negotiation targets
+        if (result.getNegotiationTargets() != null) {
+            for (ComparisonResultDto.NegotiationTarget nt : result.getNegotiationTargets()) {
+                if (nt.getBidId() != null) {
+                    try {
+                        Bid bid = bidRepository.findById(nt.getBidId()).orElse(null);
+                        if (bid != null) {
+                            NegotiationTarget target = NegotiationTarget.builder()
+                                    .bidAnalysis(analysis)
+                                    .bid(bid)
+                                    .targetPrice(nt.getTargetPrice())
+                                    .discountPercent(nt.getDiscountPercent())
+                                    .reasoning(nt.getReasoning())
+                                    .leverage(nt.getLeverage())
+                                    .build();
+                            negotiationTargetRepository.save(target);
+                        }
+                    } catch (Exception e) {
+                        log.warn("Failed to persist negotiation target for bid {}: {}", nt.getBidId(), e.getMessage());
+                    }
+                }
+            }
+        }
+
         return result;
     }
 
@@ -123,7 +185,7 @@ public class QuoteComparisonService {
         String prompt = String.format("""
             Deep analysis of a construction bid:
             Supplier: %s
-            Price: €%s
+            Price: EUR %s
             Category: %s
             Location: %s
             Timeline: %s days
@@ -219,7 +281,7 @@ public class QuoteComparisonService {
 
         String prompt = String.format("""
             Generate a negotiation strategy for this construction bid:
-            Supplier: %s, Price: €%s, Category: %s
+            Supplier: %s, Price: EUR %s, Category: %s
             Market median price/unit: %s
             Lowest competing bid: %s
             Number of competing bids: %d
@@ -234,8 +296,8 @@ public class QuoteComparisonService {
               "suggestedMessage": "str - professional negotiation email text"
             }
             """, bid.getSupplierName(), bid.getPrice(), campaign.getCategory(),
-                marketMedian != null ? "€" + marketMedian : "unknown",
-                lowestOther != null ? "€" + lowestOther : "none",
+                marketMedian != null ? "EUR " + marketMedian : "unknown",
+                lowestOther != null ? "EUR " + lowestOther : "none",
                 otherBids.size());
 
         Optional<String> cached = aiCacheService.getCached(prompt, "negotiation");
@@ -303,19 +365,54 @@ public class QuoteComparisonService {
                 builder.recommendation(root.path("recommendation").asText());
                 builder.bestValue(root.path("bestValue").asText());
 
+                // Parse rankings with new weighted fields
                 List<ComparisonResultDto.BidRanking> rankings = new ArrayList<>();
                 if (root.has("rankings") && root.get("rankings").isArray()) {
                     for (JsonNode r : root.get("rankings")) {
-                        rankings.add(ComparisonResultDto.BidRanking.builder()
+                        ComparisonResultDto.BidRanking.BidRankingBuilder rb = ComparisonResultDto.BidRanking.builder()
                                 .supplierName(r.path("supplierName").asText())
                                 .rank(r.path("rank").asInt())
                                 .score(r.path("score").asInt())
-                                .reason(r.path("reason").asText())
-                                .build());
+                                .reason(r.path("reason").asText());
+
+                        // Weighted scoring fields
+                        if (r.has("weightedScore")) {
+                            rb.weightedScore(new BigDecimal(r.get("weightedScore").asText()));
+                        }
+                        if (r.has("completeness")) {
+                            rb.completeness(new BigDecimal(r.get("completeness").asText()));
+                        }
+                        if (r.has("priceAssessment")) {
+                            rb.priceAssessment(r.get("priceAssessment").asText());
+                        }
+
+                        // Red flags per bid
+                        List<String> redFlags = new ArrayList<>();
+                        if (r.has("redFlags") && r.get("redFlags").isArray()) {
+                            r.get("redFlags").forEach(f -> redFlags.add(f.asText()));
+                        }
+                        rb.redFlags(redFlags);
+
+                        // Line item analysis
+                        List<ComparisonResultDto.LineItemAnalysis> lineItems = new ArrayList<>();
+                        if (r.has("lineItemAnalysis") && r.get("lineItemAnalysis").isArray()) {
+                            for (JsonNode li : r.get("lineItemAnalysis")) {
+                                lineItems.add(ComparisonResultDto.LineItemAnalysis.builder()
+                                        .item(li.path("item").asText())
+                                        .bidPrice(li.has("bidPrice") ? new BigDecimal(li.get("bidPrice").asText()) : null)
+                                        .marketPrice(li.has("marketPrice") ? new BigDecimal(li.get("marketPrice").asText()) : null)
+                                        .assessment(li.path("assessment").asText())
+                                        .build());
+                            }
+                        }
+                        rb.lineItemAnalysis(lineItems);
+
+                        rankings.add(rb.build());
                     }
                 }
                 builder.rankings(rankings);
 
+                // Parse risk flags
                 List<ComparisonResultDto.RiskFlag> riskFlags = new ArrayList<>();
                 if (root.has("riskFlags") && root.get("riskFlags").isArray()) {
                     for (JsonNode f : root.get("riskFlags")) {
@@ -326,6 +423,44 @@ public class QuoteComparisonService {
                     }
                 }
                 builder.riskFlags(riskFlags);
+
+                // Parse negotiation targets
+                List<ComparisonResultDto.NegotiationTarget> negotiationTargets = new ArrayList<>();
+                if (root.has("negotiationTargets") && root.get("negotiationTargets").isArray()) {
+                    for (JsonNode nt : root.get("negotiationTargets")) {
+                        ComparisonResultDto.NegotiationTarget.NegotiationTargetBuilder ntb =
+                                ComparisonResultDto.NegotiationTarget.builder()
+                                        .supplierName(nt.path("supplierName").asText())
+                                        .reasoning(nt.path("reasoning").asText())
+                                        .leverage(nt.path("leverage").asText());
+
+                        if (nt.has("bidId") && !nt.get("bidId").asText().isEmpty()) {
+                            try {
+                                ntb.bidId(UUID.fromString(nt.get("bidId").asText()));
+                            } catch (Exception ignored) {}
+                        }
+                        if (nt.has("targetPrice")) {
+                            ntb.targetPrice(new BigDecimal(nt.get("targetPrice").asText()));
+                        }
+                        if (nt.has("discountPercent")) {
+                            ntb.discountPercent(new BigDecimal(nt.get("discountPercent").asText()));
+                        }
+                        negotiationTargets.add(ntb.build());
+                    }
+                }
+                builder.negotiationTargets(negotiationTargets);
+
+                // Parse price range with market assessment
+                if (root.has("priceSpread")) {
+                    JsonNode ps = root.get("priceSpread");
+                    builder.priceRange(ComparisonResultDto.PriceRange.builder()
+                            .min(ps.has("min") ? new BigDecimal(ps.get("min").asText()) : prices.get(0))
+                            .max(ps.has("max") ? new BigDecimal(ps.get("max").asText()) : prices.get(prices.size() - 1))
+                            .median(ps.has("median") ? new BigDecimal(ps.get("median").asText()) : prices.get(prices.size() / 2))
+                            .marketAssessment(ps.path("marketAssessment").asText(""))
+                            .build());
+                }
+
             } catch (Exception e) {
                 log.error("Error parsing comparison response: {}", e.getMessage());
                 builder.recommendation(response);

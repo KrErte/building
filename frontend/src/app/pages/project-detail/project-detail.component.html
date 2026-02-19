@@ -53,7 +53,7 @@
             <polygon points="5 3 19 12 5 21 5 3"/>
           </svg>
           <div class="spinner-small" *ngIf="isStartingPipeline()"></div>
-          {{ isStartingPipeline() ? 'Käivitan...' : (pipeline() ? 'Taaskäivita töövoog' : 'Käivita töövoog') }}
+          {{ isStartingPipeline() ? 'Kaivitan...' : (pipeline() ? 'Taaskaivita toovoog' : 'Kaivita toovoog') }}
         </button>
       </div>
     </header>
@@ -64,7 +64,7 @@
         <span class="validation-icon">{{ project()!.validationStatus === 'PASSED' ? '&#10003;' : '&#9888;' }}</span>
         <div class="validation-text">
           <strong>{{ project()!.validationStatus === 'PASSED' ? 'Valideerimine labi' : 'Vajab ulevaatust' }}</strong>
-          <span *ngIf="project()!.parseConfidence">Usaldusvaartsus: {{ getConfidencePercent(project()!.parseConfidence) }}%</span>
+          <span *ngIf="project()!.parseConfidence">Usaldusvaarsus: {{ getConfidencePercent(project()!.parseConfidence) }}%</span>
         </div>
       </div>
       <button class="btn btn-sm btn-primary" *ngIf="isPipelinePausedForReview()" (click)="resumePipeline()">
@@ -135,10 +135,13 @@
         Etapid
       </button>
       <button class="section-tab" [class.active]="activeSection() === 'pipeline'" (click)="activeSection.set('pipeline')" *ngIf="pipeline()">
-        Töövoog
+        Toovoog
       </button>
       <button class="section-tab" [class.active]="activeSection() === 'bids'" (click)="activeSection.set('bids')">
         Pakkumised
+      </button>
+      <button class="section-tab" [class.active]="activeSection() === 'analysis'" (click)="activeSection.set('analysis')" *ngIf="comparison() || bids().length > 1">
+        Analuus
       </button>
     </div>
 
@@ -214,7 +217,7 @@
             <div class="supplier-score-item" *ngFor="let supplier of parseMatchedSuppliers(stage.matchedSuppliersJson).slice(0, 5)">
               <div class="supplier-score-info">
                 <span class="supplier-score-name">{{ supplier.companyName }}</span>
-                <span class="tax-debt-flag" *ngIf="supplier.hasTaxDebt">MAKSUVÕLG</span>
+                <span class="tax-debt-flag" *ngIf="supplier.hasTaxDebt">MAKSUVOLG</span>
               </div>
               <div class="score-bar-container">
                 <div class="score-bar" [ngClass]="getScoreClass(supplier.totalScore)"
@@ -242,10 +245,19 @@
         <!-- Review and Continue button when paused at VALIDATE_PARSE -->
         <div class="pipeline-actions" *ngIf="isPipelinePausedForReview()">
           <div class="review-notice">
-            Töövoog on peatatud andmete ülevaatamiseks. Kontrollige etappide andmed ja jätkake.
+            Toovoog on peatatud andmete ulevaatamiseks. Kontrollige etappide andmed ja jatkake.
           </div>
           <button class="btn btn-primary" (click)="resumePipeline()">
-            Vaata üle ja jätka
+            Vaata ule ja jatka
+          </button>
+        </div>
+        <!-- Retry button when pipeline is FAILED -->
+        <div class="pipeline-actions" *ngIf="isPipelineFailed()">
+          <div class="review-notice error-notice">
+            Toovoog ebaonnestus. Saate proovida uuesti.
+          </div>
+          <button class="btn btn-primary" (click)="resumePipeline()">
+            Proovi uuesti
           </button>
         </div>
       </div>
@@ -261,10 +273,179 @@
             <div class="step-line" *ngIf="i < pipeline()!.steps.length - 1"></div>
           </div>
           <div class="step-content">
-            <span class="step-name">{{ getStepLabel(step.stepType) || step.stepName }}</span>
+            <div class="step-name-row">
+              <span class="step-name">{{ getStepLabel(step.stepType) || step.stepName }}</span>
+              <span class="retry-badge" *ngIf="step.retryCount > 0">{{ step.retryCount }}x</span>
+            </div>
             <span class="step-time" *ngIf="step.completedAt">{{ formatDateTime(step.completedAt) }}</span>
             <span class="step-error" *ngIf="step.errorMessage">{{ step.errorMessage }}</span>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analysis Section -->
+    <div class="analysis-section" *ngIf="activeSection() === 'analysis'">
+      <!-- Load comparison button -->
+      <div class="analysis-actions" *ngIf="!comparison() && !isLoadingComparison()">
+        <button class="btn btn-primary" (click)="loadComparison(campaignId())" *ngIf="campaignId()">
+          Laadi vordlus
+        </button>
+      </div>
+
+      <div class="comparison-loading" *ngIf="isLoadingComparison()">
+        <div class="spinner-small"></div>
+        <span>Analyusin pakkumisi...</span>
+      </div>
+
+      <!-- Comparison Results -->
+      <div class="comparison-results" *ngIf="comparison()">
+        <!-- Price Range Visual -->
+        <div class="price-range-card" *ngIf="comparison()!.priceRange">
+          <h3>Hinnavahemik</h3>
+          <div class="price-range-bar">
+            <div class="price-range-track">
+              <div class="price-range-fill"
+                   [style.left.%]="0"
+                   [style.width.%]="100"></div>
+              <div class="price-marker median-marker"
+                   [style.left.%]="getPriceBarPosition(comparison()!.medianPrice, comparison()!.minPrice, comparison()!.maxPrice)">
+                <span class="marker-label">Mediaan</span>
+                <span class="marker-value">{{ formatCurrency(comparison()!.medianPrice) }}</span>
+              </div>
+            </div>
+            <div class="price-range-labels">
+              <span>{{ formatCurrency(comparison()!.minPrice) }}</span>
+              <span>{{ formatCurrency(comparison()!.maxPrice) }}</span>
+            </div>
+          </div>
+          <p class="market-assessment" *ngIf="comparison()!.priceRange!.marketAssessment">
+            {{ comparison()!.priceRange!.marketAssessment }}
+          </p>
+        </div>
+
+        <!-- Rankings Table -->
+        <div class="rankings-card">
+          <h3>Pakkujate jarjestus</h3>
+          <div class="rankings-table">
+            <div class="ranking-row header-row">
+              <span class="rank-col">#</span>
+              <span class="name-col">Pakkuja</span>
+              <span class="score-col">Skoor</span>
+              <span class="weighted-col">Kaalutud</span>
+              <span class="assessment-col">Hinnang</span>
+            </div>
+            <div class="ranking-row" *ngFor="let ranking of comparison()!.rankings">
+              <span class="rank-col">{{ ranking.rank }}</span>
+              <span class="name-col">{{ ranking.supplierName }}</span>
+              <span class="score-col">
+                <span class="score-pill" [ngClass]="getScoreClass(ranking.score)">{{ ranking.score }}</span>
+              </span>
+              <span class="weighted-col" *ngIf="ranking.weightedScore">
+                {{ ranking.weightedScore | number:'1.1-1' }}
+              </span>
+              <span class="weighted-col" *ngIf="!ranking.weightedScore">-</span>
+              <span class="assessment-col">
+                <span class="assessment-badge" *ngIf="ranking.priceAssessment"
+                      [ngClass]="'assessment-' + (ranking.priceAssessment || '').toLowerCase()">
+                  {{ ranking.priceAssessment }}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Red Flags -->
+        <div class="risk-flags-card" *ngIf="comparison()!.riskFlags && comparison()!.riskFlags.length > 0">
+          <h3>Riskid</h3>
+          <div class="risk-flag-item" *ngFor="let flag of comparison()!.riskFlags">
+            <span class="risk-icon">&#9888;</span>
+            <span class="risk-supplier">{{ flag.supplierName }}:</span>
+            <span class="risk-text">{{ flag.flag }}</span>
+          </div>
+        </div>
+
+        <!-- Negotiation Targets -->
+        <div class="negotiation-targets-card" *ngIf="comparison()!.negotiationTargets && comparison()!.negotiationTargets.length > 0">
+          <h3>Labiraakmiste sihtmargid</h3>
+          <div class="target-card" *ngFor="let target of comparison()!.negotiationTargets">
+            <div class="target-header">
+              <span class="target-supplier">{{ target.supplierName }}</span>
+              <span class="target-discount" *ngIf="target.discountPercent">-{{ target.discountPercent | number:'1.0-1' }}%</span>
+            </div>
+            <div class="target-price">
+              Siht-hind: <strong>{{ formatCurrency(target.targetPrice) }}</strong>
+            </div>
+            <p class="target-reasoning">{{ target.reasoning }}</p>
+            <p class="target-leverage" *ngIf="target.leverage">
+              <strong>Hoob:</strong> {{ target.leverage }}
+            </p>
+            <button class="btn btn-sm btn-primary" (click)="openNegotiationPanel(target.bidId, target.targetPrice)">
+              Alusta labiraakmisi
+            </button>
+          </div>
+        </div>
+
+        <!-- Recommendation -->
+        <div class="recommendation-card" *ngIf="comparison()!.recommendation">
+          <h3>Soovitus</h3>
+          <p>{{ comparison()!.recommendation }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Negotiation Panel (Overlay) -->
+    <div class="negotiation-overlay" *ngIf="selectedBidForNegotiation()">
+      <div class="negotiation-panel">
+        <div class="panel-header">
+          <h3>Labiraakmised</h3>
+          <button class="panel-close" (click)="closeNegotiationPanel()">&times;</button>
+        </div>
+
+        <!-- Rounds Timeline -->
+        <div class="rounds-timeline" *ngIf="negotiationRounds().length > 0">
+          <div class="round-item" *ngFor="let round of negotiationRounds()"
+               [ngClass]="getNegotiationRoundStatusClass(round.status)">
+            <div class="round-header">
+              <span class="round-number">Voor {{ round.roundNumber }}</span>
+              <span class="round-status-badge" [ngClass]="getNegotiationRoundStatusClass(round.status)">
+                {{ getNegotiationRoundStatusLabel(round.status) }}
+              </span>
+              <span class="round-price" *ngIf="round.proposedPrice">{{ formatCurrency(round.proposedPrice) }}</span>
+            </div>
+            <div class="round-message our-message">
+              <span class="message-label">Meie:</span>
+              <p>{{ round.ourMessage }}</p>
+              <span class="message-time" *ngIf="round.sentAt">{{ formatDateTime(round.sentAt) }}</span>
+            </div>
+            <div class="round-message their-reply" *ngIf="round.theirReply">
+              <span class="message-label">Vastus:</span>
+              <p>{{ round.theirReply }}</p>
+              <span class="message-time" *ngIf="round.repliedAt">{{ formatDateTime(round.repliedAt) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounds-empty" *ngIf="!isLoadingRounds() && negotiationRounds().length === 0">
+          <p>Labiraakmisi pole veel alustatud.</p>
+        </div>
+
+        <!-- New Negotiation Form -->
+        <div class="negotiation-form">
+          <div class="form-group">
+            <label>Siht-hind (EUR)</label>
+            <input type="number" [ngModel]="negotiationTargetPrice()" (ngModelChange)="negotiationTargetPrice.set($event)" placeholder="Sisesta siht-hind" />
+          </div>
+          <div class="form-group">
+            <label>Sonum (valikuline)</label>
+            <textarea [ngModel]="negotiationMessage()" (ngModelChange)="negotiationMessage.set($event)" placeholder="Lisa oma sonum voi lase AI genereerida..." rows="3"></textarea>
+          </div>
+          <button class="btn btn-primary"
+                  (click)="sendNegotiation(selectedBidForNegotiation()!)"
+                  [disabled]="isSendingNegotiation() || !negotiationTargetPrice()">
+            <div class="spinner-small" *ngIf="isSendingNegotiation()"></div>
+            {{ isSendingNegotiation() ? 'Saadan...' : 'Saada labiraakmise e-mail' }}
+          </button>
         </div>
       </div>
     </div>
@@ -279,7 +460,7 @@
           </svg>
         </div>
         <h3>Pakkumisi pole veel</h3>
-        <p>Käivita töövoog, et saata hinnapäringud tegijatele.</p>
+        <p>Kaivita toovoog, et saata hinnaparingud tegijatele.</p>
       </div>
     </div>
   </div>
@@ -317,6 +498,12 @@
             {{ formatDate(campaign()!.createdAt) }}
           </span>
         </div>
+      </div>
+      <div class="header-actions" *ngIf="bids().length > 1">
+        <button class="btn btn-primary" (click)="loadComparison(campaignId())" [disabled]="isLoadingComparison()">
+          <div class="spinner-small" *ngIf="isLoadingComparison()"></div>
+          {{ isLoadingComparison() ? 'Analyusin...' : 'Vordele pakkumisi' }}
+        </button>
       </div>
     </header>
 
@@ -371,6 +558,68 @@
           <span class="stat-value">{{ formatCurrency(potentialSavings()) }}</span>
           <span class="stat-label">Voimalik saastu</span>
         </div>
+      </div>
+    </div>
+
+    <!-- Comparison Results (Campaign Mode) -->
+    <div class="comparison-results" *ngIf="comparison()">
+      <div class="price-range-card" *ngIf="comparison()!.priceRange">
+        <h3>Hinnavahemik</h3>
+        <div class="price-range-bar">
+          <div class="price-range-track">
+            <div class="price-range-fill" [style.left.%]="0" [style.width.%]="100"></div>
+          </div>
+          <div class="price-range-labels">
+            <span>{{ formatCurrency(comparison()!.minPrice) }}</span>
+            <span>{{ formatCurrency(comparison()!.medianPrice) }}</span>
+            <span>{{ formatCurrency(comparison()!.maxPrice) }}</span>
+          </div>
+        </div>
+        <p class="market-assessment" *ngIf="comparison()!.priceRange!.marketAssessment">
+          {{ comparison()!.priceRange!.marketAssessment }}
+        </p>
+      </div>
+
+      <div class="rankings-card" *ngIf="comparison()!.rankings?.length">
+        <h3>Jarjestus</h3>
+        <div class="rankings-table">
+          <div class="ranking-row header-row">
+            <span class="rank-col">#</span>
+            <span class="name-col">Pakkuja</span>
+            <span class="score-col">Skoor</span>
+            <span class="weighted-col">Kaalutud</span>
+          </div>
+          <div class="ranking-row" *ngFor="let ranking of comparison()!.rankings">
+            <span class="rank-col">{{ ranking.rank }}</span>
+            <span class="name-col">{{ ranking.supplierName }}</span>
+            <span class="score-col">
+              <span class="score-pill" [ngClass]="getScoreClass(ranking.score)">{{ ranking.score }}</span>
+            </span>
+            <span class="weighted-col">{{ ranking.weightedScore ? (ranking.weightedScore | number:'1.1-1') : '-' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="negotiation-targets-card" *ngIf="comparison()!.negotiationTargets?.length">
+        <h3>Labiraakmiste sihtmargid</h3>
+        <div class="target-card" *ngFor="let target of comparison()!.negotiationTargets">
+          <div class="target-header">
+            <span class="target-supplier">{{ target.supplierName }}</span>
+            <span class="target-discount" *ngIf="target.discountPercent">-{{ target.discountPercent | number:'1.0-1' }}%</span>
+          </div>
+          <div class="target-price">
+            Siht-hind: <strong>{{ formatCurrency(target.targetPrice) }}</strong>
+          </div>
+          <p class="target-reasoning">{{ target.reasoning }}</p>
+          <button class="btn btn-sm btn-primary" (click)="openNegotiationPanel(target.bidId, target.targetPrice)">
+            Alusta labiraakmisi
+          </button>
+        </div>
+      </div>
+
+      <div class="recommendation-card" *ngIf="comparison()!.recommendation">
+        <h3>Soovitus</h3>
+        <p>{{ comparison()!.recommendation }}</p>
       </div>
     </div>
 
@@ -504,10 +753,69 @@
           <!-- Submitted Time -->
           <div class="bid-footer">
             <span class="submitted-time">{{ formatDateTime(bid.submittedAt) }}</span>
-            <button class="btn btn-sm btn-primary" (click)="selectBid(bid)">
-              Vali pakkumine
-            </button>
+            <div class="bid-actions">
+              <button class="btn btn-sm btn-outline" (click)="openNegotiationPanel(bid.id)">
+                Labiraakmised
+              </button>
+              <button class="btn btn-sm btn-primary" (click)="selectBid(bid)">
+                Vali pakkumine
+              </button>
+            </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Negotiation Panel (Campaign Mode) -->
+    <div class="negotiation-overlay" *ngIf="selectedBidForNegotiation()">
+      <div class="negotiation-panel">
+        <div class="panel-header">
+          <h3>Labiraakmised</h3>
+          <button class="panel-close" (click)="closeNegotiationPanel()">&times;</button>
+        </div>
+
+        <div class="rounds-timeline" *ngIf="negotiationRounds().length > 0">
+          <div class="round-item" *ngFor="let round of negotiationRounds()"
+               [ngClass]="getNegotiationRoundStatusClass(round.status)">
+            <div class="round-header">
+              <span class="round-number">Voor {{ round.roundNumber }}</span>
+              <span class="round-status-badge" [ngClass]="getNegotiationRoundStatusClass(round.status)">
+                {{ getNegotiationRoundStatusLabel(round.status) }}
+              </span>
+              <span class="round-price" *ngIf="round.proposedPrice">{{ formatCurrency(round.proposedPrice) }}</span>
+            </div>
+            <div class="round-message our-message">
+              <span class="message-label">Meie:</span>
+              <p>{{ round.ourMessage }}</p>
+              <span class="message-time" *ngIf="round.sentAt">{{ formatDateTime(round.sentAt) }}</span>
+            </div>
+            <div class="round-message their-reply" *ngIf="round.theirReply">
+              <span class="message-label">Vastus:</span>
+              <p>{{ round.theirReply }}</p>
+              <span class="message-time" *ngIf="round.repliedAt">{{ formatDateTime(round.repliedAt) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounds-empty" *ngIf="!isLoadingRounds() && negotiationRounds().length === 0">
+          <p>Labiraakmisi pole veel alustatud.</p>
+        </div>
+
+        <div class="negotiation-form">
+          <div class="form-group">
+            <label>Siht-hind (EUR)</label>
+            <input type="number" [ngModel]="negotiationTargetPrice()" (ngModelChange)="negotiationTargetPrice.set($event)" placeholder="Sisesta siht-hind" />
+          </div>
+          <div class="form-group">
+            <label>Sonum (valikuline)</label>
+            <textarea [ngModel]="negotiationMessage()" (ngModelChange)="negotiationMessage.set($event)" placeholder="Lisa oma sonum voi lase AI genereerida..." rows="3"></textarea>
+          </div>
+          <button class="btn btn-primary"
+                  (click)="sendNegotiation(selectedBidForNegotiation()!)"
+                  [disabled]="isSendingNegotiation() || !negotiationTargetPrice()">
+            <div class="spinner-small" *ngIf="isSendingNegotiation()"></div>
+            {{ isSendingNegotiation() ? 'Saadan...' : 'Saada labiraakmise e-mail' }}
+          </button>
         </div>
       </div>
     </div>

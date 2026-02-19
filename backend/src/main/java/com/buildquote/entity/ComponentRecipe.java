@@ -36,6 +36,9 @@ public class ComponentRecipe {
 
     private String notes;
 
+    @Column(name = "pipe_color")
+    private String pipeColor; // PURPLE, BROWN, BLUE - only for pipe materials
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

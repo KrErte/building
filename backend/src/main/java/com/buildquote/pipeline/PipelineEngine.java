@@ -90,6 +90,33 @@ public class PipelineEngine {
             throw new RuntimeException("Pipeline cannot be resumed from status: " + pipeline.getStatus());
         }
 
+        // Validate that all previous steps are COMPLETED before resuming
+        List<PipelineStep> steps = stepRepository.findByPipelineOrderByStepOrderAsc(pipeline);
+        for (int i = 0; i < pipeline.getCurrentStep(); i++) {
+            PipelineStep step = steps.get(i);
+            if (step.getStatus() != PipelineStep.StepStatus.COMPLETED
+                    && step.getStatus() != PipelineStep.StepStatus.SKIPPED) {
+                throw new RuntimeException("Cannot resume: step " + i + " (" + step.getStepType() + ") is not completed");
+            }
+        }
+
+        // Reset failed step if resuming from FAILED
+        if (pipeline.getStatus() == Pipeline.PipelineStatus.FAILED) {
+            if (pipeline.getCurrentStep() < steps.size()) {
+                PipelineStep failedStep = steps.get(pipeline.getCurrentStep());
+                if (failedStep.getStatus() == PipelineStep.StepStatus.FAILED) {
+                    failedStep.setStatus(PipelineStep.StepStatus.PENDING);
+                    failedStep.setRetryCount(0);
+                    failedStep.setErrorMessage(null);
+                    failedStep.setNextRetryAt(null);
+                    stepRepository.save(failedStep);
+                    log.info("Reset failed step {} ({}) for pipeline resume",
+                            failedStep.getStepOrder(), failedStep.getStepType());
+                }
+            }
+            pipeline.setErrorMessage(null);
+        }
+
         pipeline.setStatus(Pipeline.PipelineStatus.RUNNING);
         pipelineRepository.save(pipeline);
         executePipeline(pipelineId);
@@ -179,9 +206,25 @@ public class PipelineEngine {
                 continue;
             }
 
+            // Check nextRetryAt before executing (respect backoff delay)
+            if (step.getNextRetryAt() != null && step.getNextRetryAt().isAfter(LocalDateTime.now())) {
+                log.info("Pipeline {} step {} has nextRetryAt={}, waiting...",
+                        pipelineId, i, step.getNextRetryAt());
+                try {
+                    long waitMs = java.time.Duration.between(LocalDateTime.now(), step.getNextRetryAt()).toMillis();
+                    if (waitMs > 0 && waitMs < 300000) { // Max 5 min wait
+                        Thread.sleep(waitMs);
+                    }
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+
             // Execute step
             step.setStatus(PipelineStep.StepStatus.RUNNING);
             step.setStartedAt(LocalDateTime.now());
+            step.setNextRetryAt(null);
             stepRepository.save(step);
 
             pipeline.setCurrentStep(i);
@@ -241,13 +284,18 @@ public class PipelineEngine {
         step.setErrorMessage(error);
 
         if (handler.canRetry() && step.getRetryCount() < handler.maxRetries()) {
-            log.warn("Pipeline {} step {} failed (attempt {}/{}), retrying: {}",
-                    pipeline.getId(), step.getStepOrder(), step.getRetryCount(), handler.maxRetries(), error);
+            // Calculate next retry time with backoff: retryCount * 30 seconds
+            LocalDateTime nextRetry = LocalDateTime.now().plusSeconds((long) step.getRetryCount() * 30);
+            step.setNextRetryAt(nextRetry);
             step.setStatus(PipelineStep.StepStatus.PENDING);
             stepRepository.save(step);
+            log.warn("Pipeline {} step {} failed (attempt {}/{}), next retry at {}: {}",
+                    pipeline.getId(), step.getStepOrder(), step.getRetryCount(), handler.maxRetries(),
+                    nextRetry, error);
         } else {
             step.setStatus(PipelineStep.StepStatus.FAILED);
             step.setCompletedAt(LocalDateTime.now());
+            step.setNextRetryAt(null);
             stepRepository.save(step);
 
             pipeline.setStatus(Pipeline.PipelineStatus.FAILED);

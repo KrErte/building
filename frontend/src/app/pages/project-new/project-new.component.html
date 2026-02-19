@@ -51,21 +51,22 @@
           <div
             class="upload-zone"
             [class.drag-over]="isDragOver()"
-            [class.has-file]="selectedFile()"
+            [class.has-file]="selectedFiles().length > 0"
             (dragenter)="onDragEnter($event)"
             (dragleave)="onDragLeave($event)"
             (drop)="onDrop($event)"
-            (click)="!selectedFile() && triggerFileInput()"
+            (click)="triggerFileInput()"
           >
             <input
               #fileInput
               type="file"
               accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png,.gif,.bmp,.webp,.ifc,.dwg,.dxf,.rvt,.zip"
               (change)="onFileSelected($event)"
+              multiple
               hidden
             >
 
-            @if (!selectedFile()) {
+            @if (selectedFiles().length === 0) {
               <div class="upload-content">
                 <div class="upload-icon">
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -74,7 +75,7 @@
                     <line x1="12" y1="3" x2="12" y2="15"/>
                   </svg>
                 </div>
-                <p class="upload-text">Lohista fail siia või <span>kliki</span></p>
+                <p class="upload-text">Lohista failid siia või <span>kliki</span></p>
                 <p class="upload-formats">PDF, DOCX, DWG, DXF, IFC, RVT, ZIP, JPG, PNG</p>
                 <div class="format-icons">
                   <span class="format-badge bim" title="BIM/IFC mudel">🏗️ IFC</span>
@@ -83,29 +84,39 @@
                   <span class="format-badge bim" title="Revit mudel">🏛️ RVT</span>
                   <span class="format-badge doc" title="Dokumendid">📄 PDF</span>
                   <span class="format-badge img" title="Pildid">🖼️ IMG</span>
-                  <span class="format-badge zip" title="ZIP arhiiv sisaldab: IFC, DWG, DXF, RVT, PDF, pildid (JPG, PNG, GIF, BMP, WebP)">📦 ZIP</span>
+                  <span class="format-badge zip" title="ZIP arhiiv">📦 ZIP</span>
                 </div>
-                <p class="zip-hint">ZIP-arhiiv võib sisaldada: IFC, DWG, DXF, RVT, PDF ja pildifaile</p>
+                <p class="zip-hint">Saad lisada mitu faili korraga</p>
               </div>
             } @else {
-              <div class="file-preview">
-                @if (filePreview()) {
-                  <img [src]="filePreview()" alt="Preview" class="preview-image">
-                } @else {
-                  <div class="file-icon-large">
-                    <span class="icon">{{ getFileIcon(selectedFile()?.name) }}</span>
-                    <span class="type-badge">{{ getFileTypeLabel(selectedFile()?.name) }}</span>
+              <div class="files-list" (click)="$event.stopPropagation()">
+                <div class="files-header">
+                  <span class="files-count">{{ selectedFiles().length }} faili ({{ (getTotalFileSize() / 1024) | number:'1.0-0' }} KB)</span>
+                  <button class="btn-add-more" (click)="triggerFileInput(); $event.stopPropagation()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Lisa veel
+                  </button>
+                </div>
+                @for (file of selectedFiles(); track file.name) {
+                  <div class="file-row">
+                    @if (getFilePreview(file)) {
+                      <img [src]="getFilePreview(file)" alt="Preview" class="file-row-preview">
+                    } @else {
+                      <span class="file-row-icon">{{ getFileIcon(file.name) }}</span>
+                    }
+                    <div class="file-row-info">
+                      <span class="file-row-name">{{ file.name }}</span>
+                      <span class="file-row-meta">{{ getFileTypeLabel(file.name) }} — {{ (file.size / 1024) | number:'1.0-0' }} KB</span>
+                    </div>
+                    <button class="file-remove-small" (click)="removeFile(file); $event.stopPropagation()">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
                   </div>
                 }
-                <div class="file-info">
-                  <p class="file-name">{{ selectedFile()?.name }}</p>
-                  <p class="file-size">{{ (selectedFile()?.size || 0) / 1024 | number:'1.0-0' }} KB</p>
-                </div>
-                <button class="file-remove" (click)="removeFile(); $event.stopPropagation()">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
               </div>
             }
           </div>
@@ -489,10 +500,26 @@
             ></app-pipe-system-breakdown>
           </div>
         }
+
+        <!-- Pipe Length Summary (colored pipes) -->
+        @if (hasPipeLengths()) {
+          <div class="pipe-lengths-wrapper glass-card">
+            <app-pipe-length-summary
+              [summaries]="result()!.pipeLengthSummaries!"
+            ></app-pipe-length-summary>
+          </div>
+        }
         } <!-- end work tab -->
 
         <!-- Materials Tab -->
         @if (activeTab() === 'materials') {
+          @if (hasPipeLengths()) {
+            <div class="pipe-lengths-wrapper glass-card">
+              <app-pipe-length-summary
+                [summaries]="result()!.pipeLengthSummaries!"
+              ></app-pipe-length-summary>
+            </div>
+          }
           <div class="materials-tab-content glass-card">
             <app-dependent-materials
               [materials]="result()?.dependentMaterials || []"

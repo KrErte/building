@@ -3,6 +3,7 @@ package com.buildquote.service;
 import com.buildquote.dto.DependentMaterialDto;
 import com.buildquote.dto.MaterialSummaryDto;
 import com.buildquote.dto.PipeComponentDto;
+import com.buildquote.dto.PipeLengthSummaryDto;
 import com.buildquote.dto.PipeSystemDto;
 import com.buildquote.dto.ProjectParseResult;
 import com.buildquote.dto.ProjectStageDto;
@@ -10,9 +11,9 @@ import com.buildquote.entity.MarketPrice;
 import com.buildquote.repository.MarketPriceRepository;
 import com.buildquote.repository.SupplierRepository;
 import com.buildquote.service.SupplierSearchService;
+import com.buildquote.util.BoundedParallel;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -20,6 +21,8 @@ import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -40,14 +43,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ProjectParserService {
 
@@ -60,8 +60,34 @@ public class ProjectParserService {
     private final SupplierRepository supplierRepository;
     private final SupplierSearchService supplierSearchService;
     private final DependentMaterialService dependentMaterialService;
+    private final FileHashCacheService fileHashCacheService;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final ExecutorService enrichmentExecutor = Executors.newFixedThreadPool(8);
+    private final ThreadPoolTaskExecutor enrichmentExecutor;
+
+    public ProjectParserService(
+            AnthropicService anthropicService,
+            IfcParserService ifcParserService,
+            IfcProcessingService ifcProcessingService,
+            IfcOpenShellParserService ifcOpenShellParserService,
+            DxfParserService dxfParserService,
+            MarketPriceRepository marketPriceRepository,
+            SupplierRepository supplierRepository,
+            SupplierSearchService supplierSearchService,
+            DependentMaterialService dependentMaterialService,
+            FileHashCacheService fileHashCacheService,
+            @Qualifier("enrichmentExecutor") ThreadPoolTaskExecutor enrichmentExecutor) {
+        this.anthropicService = anthropicService;
+        this.ifcParserService = ifcParserService;
+        this.ifcProcessingService = ifcProcessingService;
+        this.ifcOpenShellParserService = ifcOpenShellParserService;
+        this.dxfParserService = dxfParserService;
+        this.marketPriceRepository = marketPriceRepository;
+        this.supplierRepository = supplierRepository;
+        this.supplierSearchService = supplierSearchService;
+        this.dependentMaterialService = dependentMaterialService;
+        this.fileHashCacheService = fileHashCacheService;
+        this.enrichmentExecutor = enrichmentExecutor;
+    }
 
     private static final String VISION_PROMPT = """
         You are a construction project analyzer specializing in reading construction drawings and plans.
@@ -263,22 +289,12 @@ public class ProjectParserService {
      */
     public ProjectParseResult enrichWithPrices(ProjectParseResult result) {
         String location = result.getLocation();
-        List<CompletableFuture<Void>> enrichmentFutures = new ArrayList<>();
 
-        for (ProjectStageDto stage : result.getStages()) {
-            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                enrichWithMarketPrices(stage, location);
-                enrichWithSupplierCount(stage, location);
-            }, enrichmentExecutor);
-            enrichmentFutures.add(future);
-        }
-
-        try {
-            CompletableFuture.allOf(enrichmentFutures.toArray(new CompletableFuture[0]))
-                .get(5, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            log.warn("Parallel enrichment timeout, some stages may have default values");
-        }
+        BoundedParallel.run(result.getStages(), 4, enrichmentExecutor, stage -> {
+            enrichWithMarketPrices(stage, location);
+            enrichWithSupplierCount(stage, location);
+            return null;
+        });
 
         // Enrich pipe system component prices
         if (result.getPipeSystems() != null && !result.getPipeSystems().isEmpty()) {
@@ -292,6 +308,15 @@ public class ProjectParserService {
             result.setDependentMaterials(dependentMaterials);
         } catch (Exception e) {
             log.warn("Dependent material calculation failed: {}", e.getMessage());
+        }
+
+        // Calculate pipe length summaries by color
+        try {
+            List<PipeLengthSummaryDto> pipeLengths =
+                dependentMaterialService.calculatePipeLengths(result.getStages());
+            result.setPipeLengthSummaries(pipeLengths);
+        } catch (Exception e) {
+            log.warn("Pipe length calculation failed: {}", e.getMessage());
         }
 
         calculateTotals(result);
@@ -308,6 +333,20 @@ public class ProjectParserService {
         String text;
 
         log.info("Processing file: {} (type: {}, size: {} bytes)", filename, file.getContentType(), file.getSize());
+
+        // SHA-256 cache check
+        byte[] fileBytes = file.getBytes();
+        String sha256 = fileHashCacheService.computeSha256(fileBytes);
+        Optional<String> cachedJson = fileHashCacheService.getCachedResult(sha256, "parse_file");
+        if (cachedJson.isPresent()) {
+            try {
+                ProjectParseResult cached = objectMapper.readValue(cachedJson.get(), ProjectParseResult.class);
+                log.info("Returning cached parse result for file {} (sha256={})", filename, sha256.substring(0, 12));
+                return cached;
+            } catch (Exception e) {
+                log.warn("Failed to deserialize cached result, re-parsing: {}", e.getMessage());
+            }
+        }
 
         // Handle different file types
         if (lowerFilename.endsWith(".pdf")) {
@@ -327,6 +366,7 @@ public class ProjectParserService {
                 lastPageImages.remove();
                 lastMediaTypes.remove();
             }
+            cacheParseResult(sha256, result);
             return result;
         } else if (lowerFilename.endsWith(".docx") || lowerFilename.endsWith(".doc")) {
             text = extractTextFromDocx(file.getInputStream());
@@ -345,7 +385,9 @@ public class ProjectParserService {
             // Revit files are binary - provide guidance
             text = handleRevitFile(file);
         } else if (isImageFile(lowerFilename)) {
-            return parseFromImage(file);
+            ProjectParseResult imgResult = parseFromImage(file);
+            cacheParseResult(sha256, imgResult);
+            return imgResult;
         } else if (lowerFilename.endsWith(".txt")) {
             text = new String(file.getBytes());
         } else {
@@ -353,7 +395,19 @@ public class ProjectParserService {
             text = new String(file.getBytes());
         }
 
-        return parseFromText(text);
+        ProjectParseResult textResult = parseFromText(text);
+        cacheParseResult(sha256, textResult);
+        return textResult;
+    }
+
+    private void cacheParseResult(String sha256, ProjectParseResult result) {
+        try {
+            String json = objectMapper.writeValueAsString(result);
+            String promptHash = fileHashCacheService.computePromptHash("parse_file");
+            fileHashCacheService.cacheResult(sha256, "parse_file", promptHash, json, 24);
+        } catch (Exception e) {
+            log.warn("Failed to cache parse result: {}", e.getMessage());
+        }
     }
 
     private boolean isImageFile(String filename) {
@@ -1578,5 +1632,110 @@ public class ProjectParserService {
         stage.setDescription(description);
         stage.setDependencies(new ArrayList<>());
         return stage;
+    }
+
+    /**
+     * Parse multiple files and merge results into a single ProjectParseResult.
+     */
+    public ProjectParseResult parseFromFiles(List<MultipartFile> files) throws IOException {
+        if (files == null || files.isEmpty()) {
+            throw new IllegalArgumentException("No files provided");
+        }
+        if (files.size() == 1) {
+            return parseFromFile(files.get(0));
+        }
+
+        log.info("Parsing {} files in parallel", files.size());
+
+        // Parse each file in parallel
+        var batchResult = BoundedParallel.run(
+            files, 4, enrichmentExecutor,
+            file -> {
+                try {
+                    return parseFromFile(file);
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to parse file: " + file.getOriginalFilename(), e);
+                }
+            }
+        );
+
+        if (batchResult.successes().isEmpty()) {
+            throw new IOException("All files failed to parse");
+        }
+
+        // Merge all successful results
+        ProjectParseResult merged = batchResult.successes().get(0);
+        for (int i = 1; i < batchResult.successes().size(); i++) {
+            merged = mergeResults(merged, batchResult.successes().get(i));
+        }
+
+        // Log failures
+        for (var failure : batchResult.failures()) {
+            log.warn("File parse failed: {}", failure.getMessage());
+        }
+
+        // Recalculate totals after merge
+        calculateTotals(merged);
+        buildSummary(merged);
+
+        log.info("Merged {} file results: {} stages, {} pipe systems",
+            batchResult.successes().size(),
+            merged.getStages() != null ? merged.getStages().size() : 0,
+            merged.getPipeSystems() != null ? merged.getPipeSystems().size() : 0);
+
+        return merged;
+    }
+
+    /**
+     * Merge two ProjectParseResults into one.
+     * Uses the first result's metadata (title, location) and combines all lists.
+     */
+    private ProjectParseResult mergeResults(ProjectParseResult a, ProjectParseResult b) {
+        // Keep title/location from first result, append second if different
+        if (b.getProjectTitle() != null && !b.getProjectTitle().isBlank()
+            && (a.getProjectTitle() == null || a.getProjectTitle().isBlank())) {
+            a.setProjectTitle(b.getProjectTitle());
+        }
+        if (b.getLocation() != null && !b.getLocation().isBlank()
+            && (a.getLocation() == null || a.getLocation().isBlank())) {
+            a.setLocation(b.getLocation());
+        }
+
+        // Merge stages
+        if (b.getStages() != null && !b.getStages().isEmpty()) {
+            List<ProjectStageDto> stages = new ArrayList<>(a.getStages() != null ? a.getStages() : List.of());
+            stages.addAll(b.getStages());
+            a.setStages(stages);
+        }
+
+        // Merge pipe systems
+        if (b.getPipeSystems() != null && !b.getPipeSystems().isEmpty()) {
+            List<PipeSystemDto> pipes = new ArrayList<>(a.getPipeSystems() != null ? a.getPipeSystems() : List.of());
+            pipes.addAll(b.getPipeSystems());
+            a.setPipeSystems(pipes);
+        }
+
+        // Merge dependent materials
+        if (b.getDependentMaterials() != null && !b.getDependentMaterials().isEmpty()) {
+            List<DependentMaterialDto> mats = new ArrayList<>(a.getDependentMaterials() != null ? a.getDependentMaterials() : List.of());
+            mats.addAll(b.getDependentMaterials());
+            a.setDependentMaterials(mats);
+        }
+
+        // Merge pipe length summaries
+        if (b.getPipeLengthSummaries() != null && !b.getPipeLengthSummaries().isEmpty()) {
+            List<PipeLengthSummaryDto> lengths = new ArrayList<>(a.getPipeLengthSummaries() != null ? a.getPipeLengthSummaries() : List.of());
+            lengths.addAll(b.getPipeLengthSummaries());
+            a.setPipeLengthSummaries(lengths);
+        }
+
+        // Use larger budget if both present
+        if (b.getTotalBudget() != null) {
+            if (a.getTotalBudget() == null || b.getTotalBudget().compareTo(a.getTotalBudget()) > 0) {
+                a.setTotalBudget(b.getTotalBudget());
+            }
+        }
+
+        return a;
     }
 }

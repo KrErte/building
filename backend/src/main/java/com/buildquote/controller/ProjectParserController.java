@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/projects")
 @RequiredArgsConstructor
@@ -46,6 +48,24 @@ public class ProjectParserController {
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("Error parsing file: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Parse project from multiple uploaded files
+     */
+    @PostMapping(value = "/parse-files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ProjectParseResult> parseFromFiles(
+            @RequestParam("files") List<MultipartFile> files) {
+        log.info("Received parse-files request: {} files", files.size());
+        files.forEach(f -> log.info("  - {} ({})", f.getOriginalFilename(), f.getSize()));
+
+        try {
+            ProjectParseResult result = projectParserService.parseFromFiles(files);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Error parsing files: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().build();
         }
     }

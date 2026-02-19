@@ -2,7 +2,10 @@ package com.buildquote.controller;
 
 import com.buildquote.dto.ComparisonResultDto;
 import com.buildquote.dto.NegotiationDto;
+import com.buildquote.dto.NegotiationRequest;
+import com.buildquote.dto.NegotiationRoundDto;
 import com.buildquote.security.UserPrincipal;
+import com.buildquote.service.NegotiationService;
 import com.buildquote.service.QuoteComparisonService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -20,6 +24,7 @@ import java.util.UUID;
 public class AnalysisController {
 
     private final QuoteComparisonService quoteComparisonService;
+    private final NegotiationService negotiationService;
 
     @GetMapping("/campaign/{id}/compare")
     public ResponseEntity<ComparisonResultDto> compareBids(@PathVariable UUID id,
@@ -43,5 +48,22 @@ public class AnalysisController {
         log.info("Generating negotiation strategy for bid: {}", id);
         NegotiationDto strategy = quoteComparisonService.generateNegotiationStrategy(id);
         return ResponseEntity.ok(strategy);
+    }
+
+    @PostMapping("/bid/{id}/negotiate/send")
+    public ResponseEntity<NegotiationRoundDto> sendNegotiation(@PathVariable UUID id,
+                                                                @RequestBody NegotiationRequest request,
+                                                                @AuthenticationPrincipal UserPrincipal principal) {
+        log.info("Sending negotiation for bid: {}", id);
+        NegotiationRoundDto round = negotiationService.sendNegotiation(id, request);
+        return ResponseEntity.ok(round);
+    }
+
+    @GetMapping("/bid/{id}/negotiate/rounds")
+    public ResponseEntity<List<NegotiationRoundDto>> getNegotiationRounds(@PathVariable UUID id,
+                                                                           @AuthenticationPrincipal UserPrincipal principal) {
+        log.info("Getting negotiation rounds for bid: {}", id);
+        List<NegotiationRoundDto> rounds = negotiationService.listRounds(id);
+        return ResponseEntity.ok(rounds);
     }
 }

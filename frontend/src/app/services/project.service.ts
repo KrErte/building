@@ -46,32 +46,58 @@ export class ProjectService {
     file: File,
     progressCallback: (progress: UploadProgress) => void
   ): Observable<ProjectParseResult> {
+    return this.parseFromFilesWithProgress([file], progressCallback);
+  }
+
+  /**
+   * Upload multiple files with progress tracking
+   */
+  parseFromFilesWithProgress(
+    files: File[],
+    progressCallback: (progress: UploadProgress) => void
+  ): Observable<ProjectParseResult> {
     return new Observable(observer => {
       const formData = new FormData();
-      formData.append('file', file);
+      const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+      const isSingle = files.length === 1;
+
+      if (isSingle) {
+        formData.append('file', files[0]);
+      } else {
+        files.forEach(f => formData.append('files', f));
+      }
 
       const xhr = new XMLHttpRequest();
       let startTime = Date.now();
       let lastLoaded = 0;
       let lastTime = startTime;
 
-      // Processing steps for different file types
-      const isZip = file.name.toLowerCase().endsWith('.zip');
-      const isIfc = file.name.toLowerCase().endsWith('.ifc');
-      const processingSteps: ProcessingStep[] = isZip ? [
-        { label: `Fail üles laaditud (${this.formatFileSize(file.size)})`, status: 'pending' },
+      // Processing steps
+      const fileCount = files.length;
+      const file = files[0]; // for type detection
+      const isZip = isSingle && file.name.toLowerCase().endsWith('.zip');
+      const isIfc = isSingle && file.name.toLowerCase().endsWith('.ifc');
+      const sizeLabel = this.formatFileSize(totalSize);
+      const processingSteps: ProcessingStep[] = !isSingle ? [
+        { label: `${fileCount} faili üles laaditud (${sizeLabel})`, status: 'pending' },
+        { label: `Analüüsin ${fileCount} faili...`, status: 'pending' },
+        { label: 'Liidan tulemused...', status: 'pending' },
+        { label: 'Arvutan hinda...', status: 'pending' },
+        { label: 'Otsin tegijaid...', status: 'pending' }
+      ] : isZip ? [
+        { label: `Fail üles laaditud (${sizeLabel})`, status: 'pending' },
         { label: 'Pakkin lahti...', status: 'pending' },
         { label: 'Analüüsin faile...', status: 'pending' },
         { label: 'Arvutan hinda...', status: 'pending' },
         { label: 'Otsin tegijaid...', status: 'pending' }
       ] : isIfc ? [
-        { label: `Fail üles laaditud (${this.formatFileSize(file.size)})`, status: 'pending' },
+        { label: `Fail üles laaditud (${sizeLabel})`, status: 'pending' },
         { label: 'Analüüsin BIM mudelit...', status: 'pending' },
         { label: 'Tuvastan ehituselemente...', status: 'pending' },
         { label: 'Arvutan hinda...', status: 'pending' },
         { label: 'Otsin tegijaid...', status: 'pending' }
       ] : [
-        { label: `Fail üles laaditud (${this.formatFileSize(file.size)})`, status: 'pending' },
+        { label: `Fail üles laaditud (${sizeLabel})`, status: 'pending' },
         { label: 'Analüüsin dokumenti...', status: 'pending' },
         { label: 'Arvutan hinda...', status: 'pending' },
         { label: 'Otsin tegijaid...', status: 'pending' }
@@ -195,7 +221,8 @@ export class ProjectService {
         observer.error(new Error('Ühendus aegus'));
       });
 
-      xhr.open('POST', `${this.apiUrl}/projects/parse-file`);
+      const endpoint = isSingle ? 'parse-file' : 'parse-files';
+      xhr.open('POST', `${this.apiUrl}/projects/${endpoint}`);
       xhr.timeout = 30 * 60 * 1000; // 30 minutes for large files
       xhr.send(formData);
 

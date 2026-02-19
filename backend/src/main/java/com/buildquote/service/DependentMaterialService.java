@@ -1,6 +1,7 @@
 package com.buildquote.service;
 
 import com.buildquote.dto.DependentMaterialDto;
+import com.buildquote.dto.PipeLengthSummaryDto;
 import com.buildquote.dto.ProjectStageDto;
 import com.buildquote.entity.ComponentRecipe;
 import com.buildquote.entity.MaterialUnitPrice;
@@ -171,5 +172,105 @@ public class DependentMaterialService {
         } else {
             log.debug("No price found for material: {}", material.getMaterialName());
         }
+    }
+
+    /**
+     * Calculate pipe length summaries grouped by color (PURPLE, BROWN, BLUE).
+     * Extracts pipe recipes that have pipeColor set and unit "jm" (linear meters),
+     * multiplies by stage quantities, and aggregates by color.
+     */
+    public List<PipeLengthSummaryDto> calculatePipeLengths(List<ProjectStageDto> stages) {
+        if (stages == null || stages.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<ComponentRecipe> allRecipes = recipeRepository.findAll();
+        if (allRecipes.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // color -> { pipeName -> PipeItem }
+        Map<String, Map<String, PipeLengthSummaryDto.PipeItem>> colorGroups = new LinkedHashMap<>();
+
+        for (ProjectStageDto stage : stages) {
+            List<ComponentRecipe> matchedRecipes = findMatchingRecipes(stage, allRecipes);
+
+            for (ComponentRecipe recipe : matchedRecipes) {
+                if (recipe.getPipeColor() == null || !"jm".equalsIgnoreCase(recipe.getMaterialUnit())) {
+                    continue;
+                }
+
+                String color = recipe.getPipeColor();
+                BigDecimal lengthM = stage.getQuantity().multiply(recipe.getQuantityPerUnit());
+
+                Map<String, PipeLengthSummaryDto.PipeItem> pipes =
+                    colorGroups.computeIfAbsent(color, k -> new LinkedHashMap<>());
+
+                String pipeKey = recipe.getMaterialName().toLowerCase();
+                PipeLengthSummaryDto.PipeItem item = pipes.computeIfAbsent(pipeKey, k -> {
+                    PipeLengthSummaryDto.PipeItem pi = new PipeLengthSummaryDto.PipeItem();
+                    pi.setName(recipe.getMaterialName());
+                    pi.setLengthM(BigDecimal.ZERO);
+                    // Extract diameter from name (e.g. "PPR toru Ø20" -> "Ø20")
+                    String name = recipe.getMaterialName();
+                    int idx = name.indexOf('Ø');
+                    if (idx >= 0) {
+                        pi.setDiameter(name.substring(idx));
+                    }
+                    return pi;
+                });
+
+                item.setLengthM(item.getLengthM().add(lengthM));
+                if (!item.getSourceStages().contains(stage.getName())) {
+                    item.getSourceStages().add(stage.getName());
+                }
+            }
+        }
+
+        // Build summary DTOs
+        List<PipeLengthSummaryDto> result = new ArrayList<>();
+        String[] colorOrder = {"PURPLE", "BROWN", "BLUE"};
+
+        for (String color : colorOrder) {
+            Map<String, PipeLengthSummaryDto.PipeItem> pipes = colorGroups.get(color);
+            if (pipes == null || pipes.isEmpty()) {
+                continue;
+            }
+
+            PipeLengthSummaryDto summary = new PipeLengthSummaryDto();
+            summary.setColor(color);
+            summary.setColorLabel(getColorLabel(color));
+            summary.setDescription(getColorDescription(color));
+            summary.setPipes(new ArrayList<>(pipes.values()));
+
+            BigDecimal total = BigDecimal.ZERO;
+            for (PipeLengthSummaryDto.PipeItem pipe : pipes.values()) {
+                total = total.add(pipe.getLengthM());
+            }
+            summary.setTotalLengthM(total.setScale(1, RoundingMode.HALF_UP));
+
+            result.add(summary);
+        }
+
+        log.info("Calculated pipe lengths for {} colors from {} stages", result.size(), stages.size());
+        return result;
+    }
+
+    private String getColorLabel(String color) {
+        return switch (color) {
+            case "PURPLE" -> "Lillad torud";
+            case "BROWN" -> "Pruunid torud";
+            case "BLUE" -> "Sinised torud";
+            default -> color;
+        };
+    }
+
+    private String getColorDescription(String color) {
+        return switch (color) {
+            case "PURPLE" -> "Küte ja sooja vee torud (PPR/PEX)";
+            case "BROWN" -> "Kanalisatsiooni torud (KG/HT)";
+            case "BLUE" -> "Külma vee torud (PPR/PE)";
+            default -> "";
+        };
     }
 }

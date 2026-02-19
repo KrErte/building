@@ -20,6 +20,7 @@ public class ProjectParseResult {
 
     // Dependent materials (component recipe system)
     private List<DependentMaterialDto> dependentMaterials;
+    private List<PipeLengthSummaryDto> pipeLengthSummaries;
     private List<MaterialSummaryDto> summary;
     private BigDecimal materialsTotalMin;
     private BigDecimal materialsTotalMax;
