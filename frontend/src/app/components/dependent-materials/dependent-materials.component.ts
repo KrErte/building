@@ -36,8 +36,6 @@ import { DependentMaterial } from '../../models/project.model';
             <span class="col-material">Materjal</span>
             <span class="col-qty">Kogus</span>
             <span class="col-unit">Ühik</span>
-            <span class="col-unit-price">Ühiku hind</span>
-            <span class="col-total">Kokku</span>
             <span class="col-source">Allikad</span>
           </div>
 
@@ -46,20 +44,6 @@ import { DependentMaterial } from '../../models/project.model';
               <span class="col-material">{{ mat.materialName }}</span>
               <span class="col-qty">{{ mat.totalQuantity | number:'1.0-2' }}</span>
               <span class="col-unit">{{ mat.unit }}</span>
-              <span class="col-unit-price">
-                @if (mat.unitPriceMin && mat.unitPriceMax) {
-                  {{ mat.unitPriceMin | number:'1.2-2' }}–{{ mat.unitPriceMax | number:'1.2-2' }} €
-                } @else {
-                  <span class="no-price">hind puudub</span>
-                }
-              </span>
-              <span class="col-total">
-                @if (mat.totalPriceMin && mat.totalPriceMax) {
-                  {{ mat.totalPriceMin | number:'1.0-0' }}–{{ mat.totalPriceMax | number:'1.0-0' }} €
-                } @else {
-                  <span class="no-price">–</span>
-                }
-              </span>
               <span class="col-source">
                 @for (stage of mat.sourceStages; track stage) {
                   <span class="source-badge">{{ stage }}</span>
@@ -69,13 +53,9 @@ import { DependentMaterial } from '../../models/project.model';
           }
 
           <div class="table-total-row">
-            <span class="col-material total-label">Kokku</span>
+            <span class="col-material total-label">Kokku: {{ materials.length }} materjali</span>
             <span class="col-qty"></span>
             <span class="col-unit"></span>
-            <span class="col-unit-price"></span>
-            <span class="col-total total-value">
-              {{ getTotalMin() | number:'1.0-0' }}–{{ getTotalMax() | number:'1.0-0' }} €
-            </span>
             <span class="col-source"></span>
           </div>
         </div>
@@ -148,7 +128,7 @@ import { DependentMaterial } from '../../models/project.model';
 
     .table-header-row {
       display: grid;
-      grid-template-columns: 2fr 0.8fr 0.6fr 1.2fr 1.2fr 1.5fr;
+      grid-template-columns: 2.5fr 0.8fr 0.6fr 1.5fr;
       padding: 12px 16px;
       background: rgba(255, 255, 255, 0.04);
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -161,7 +141,7 @@ import { DependentMaterial } from '../../models/project.model';
 
     .table-row {
       display: grid;
-      grid-template-columns: 2fr 0.8fr 0.6fr 1.2fr 1.2fr 1.5fr;
+      grid-template-columns: 2.5fr 0.8fr 0.6fr 1.5fr;
       padding: 10px 16px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
       font-size: 0.88rem;
@@ -175,7 +155,7 @@ import { DependentMaterial } from '../../models/project.model';
 
     .table-total-row {
       display: grid;
-      grid-template-columns: 2fr 0.8fr 0.6fr 1.2fr 1.2fr 1.5fr;
+      grid-template-columns: 2.5fr 0.8fr 0.6fr 1.5fr;
       padding: 14px 16px;
       background: rgba(99, 102, 241, 0.08);
       border-top: 1px solid rgba(99, 102, 241, 0.2);
@@ -223,12 +203,7 @@ import { DependentMaterial } from '../../models/project.model';
       .table-header-row,
       .table-row,
       .table-total-row {
-        grid-template-columns: 1fr 0.6fr 0.5fr 1fr;
-      }
-
-      .col-source,
-      .col-unit-price {
-        display: none;
+        grid-template-columns: 1.5fr 0.6fr 0.5fr 1fr;
       }
     }
   `]
@@ -247,15 +222,11 @@ export class DependentMaterialsComponent {
   exportCsv(): void {
     if (!this.materials || this.materials.length === 0) return;
 
-    const headers = ['Materjal', 'Kogus', 'Ühik', 'Min hind/ühik', 'Max hind/ühik', 'Min kokku', 'Max kokku', 'Allikad'];
+    const headers = ['Materjal', 'Kogus', 'Ühik', 'Allikad'];
     const rows = this.materials.map(m => [
       m.materialName,
       m.totalQuantity,
       m.unit,
-      m.unitPriceMin || '',
-      m.unitPriceMax || '',
-      m.totalPriceMin || '',
-      m.totalPriceMax || '',
       (m.sourceStages || []).join('; ')
     ]);
 

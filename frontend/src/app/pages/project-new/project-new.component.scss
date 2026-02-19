@@ -1513,45 +1513,13 @@ app-price-breakdown {
 }
 
 .summary-content {
-  display: flex;
-  align-items: center;
-  gap: 32px;
   margin-bottom: 24px;
 }
 
-.summary-left {
-  flex: 1;
-
-  .summary-label {
-    font-size: 13px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 8px;
-  }
-
-  .summary-price {
-    font-size: 28px;
-    font-weight: 800;
-    color: var(--text-primary);
-    margin-bottom: 4px;
-  }
-
-  .summary-median {
-    font-size: 14px;
-    color: var(--purple-primary);
-  }
-}
-
-.summary-divider {
-  width: 1px;
-  height: 80px;
-  background: linear-gradient(to bottom, transparent, var(--border-color), transparent);
-}
-
-.summary-right {
+.summary-stats-row {
   display: flex;
-  gap: 32px;
+  justify-content: center;
+  gap: 48px;
 }
 
 .summary-stat {
@@ -2289,22 +2257,6 @@ app-price-breakdown {
   border-radius: 16px;
 }
 
-// Summary card updated styles
-.summary-materials-line {
-  font-size: 13px;
-  color: #94a3b8;
-  margin-top: 4px;
-}
-
-.summary-grand {
-  font-size: 16px;
-  font-weight: 700;
-  color: #a5b4fc;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(99, 102, 241, 0.2);
-}
-
 // ============================================
 // RESPONSIVE
 // ============================================
@@ -2349,21 +2301,10 @@ app-price-breakdown {
     top: 20px;
   }
 
-  .summary-content {
-    flex-direction: column;
+  .summary-stats-row {
+    flex-wrap: wrap;
     gap: 24px;
-    text-align: center;
-  }
-
-  .summary-divider {
-    width: 100%;
-    height: 1px;
-  }
-
-  .summary-left {
-    .summary-price {
-      font-size: 24px;
-    }
+    justify-content: center;
   }
 
   .social-proof {

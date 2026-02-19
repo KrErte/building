@@ -41,9 +41,6 @@ import { PipeSystem, PipeComponent, PIPE_SYSTEM_ICONS } from '../../models/proje
               </div>
             </div>
             <div class="system-right">
-              <div class="system-price">
-                {{ formatCurrency(system.totalPriceMin) }} — {{ formatCurrency(system.totalPriceMax) }}
-              </div>
               <div class="confidence-badge" [class.high]="system.confidence >= 0.7" [class.medium]="system.confidence >= 0.4 && system.confidence < 0.7" [class.low]="system.confidence < 0.4">
                 {{ (system.confidence * 100) | number:'1.0-0' }}%
               </div>
@@ -64,8 +61,6 @@ import { PipeSystem, PipeComponent, PIPE_SYSTEM_ICONS } from '../../models/proje
                     <th>Diameeter</th>
                     <th>Kogus</th>
                     <th>Pikkus</th>
-                    <th>Ühiku hind</th>
-                    <th>Kokku</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -93,39 +88,15 @@ import { PipeSystem, PipeComponent, PIPE_SYSTEM_ICONS } from '../../models/proje
                           —
                         }
                       </td>
-                      <td class="price-cell">
-                        {{ formatCurrency(comp.unitPriceMin) }} — {{ formatCurrency(comp.unitPriceMax) }}
-                        <span class="price-unit">/{{ comp.priceUnit }}</span>
-                      </td>
-                      <td class="price-cell total">
-                        {{ formatCurrency(comp.totalPriceMin) }} — {{ formatCurrency(comp.totalPriceMax) }}
-                      </td>
                     </tr>
                   }
                 </tbody>
-                <tfoot>
-                  <tr>
-                    <td colspan="5" class="total-label">Süsteemi kokku</td>
-                    <td class="price-cell total">
-                      {{ formatCurrency(system.totalPriceMin) }} — {{ formatCurrency(system.totalPriceMax) }}
-                    </td>
-                  </tr>
-                </tfoot>
               </table>
             </div>
           }
         </div>
       }
 
-      <!-- Grand Total -->
-      @if (pipeSystems.length > 1) {
-        <div class="grand-total">
-          <span class="grand-total-label">Torustiku kogumaht</span>
-          <span class="grand-total-price">
-            {{ formatCurrency(grandTotalMin) }} — {{ formatCurrency(grandTotalMax) }}
-          </span>
-        </div>
-      }
     </div>
   `,
   styles: [`
@@ -479,7 +450,7 @@ export class PipeSystemBreakdownComponent {
     const SEP = ';';
     const lines: string[] = [];
 
-    lines.push(['Süsteem', 'Kood', 'Komponent', 'Diameeter', 'Kogus', 'Ühik', 'Pikkus (m)', 'Materjal', 'Min hind', 'Max hind'].join(SEP));
+    lines.push(['Süsteem', 'Kood', 'Komponent', 'Diameeter', 'Kogus', 'Ühik', 'Pikkus (m)', 'Materjal'].join(SEP));
 
     for (const sys of this.pipeSystems) {
       for (const comp of sys.components) {
@@ -491,9 +462,7 @@ export class PipeSystemBreakdownComponent {
           String(comp.count),
           comp.priceUnit,
           comp.lengthM ? String(comp.lengthM) : '',
-          comp.material || '',
-          comp.totalPriceMin ? String(comp.totalPriceMin) : '',
-          comp.totalPriceMax ? String(comp.totalPriceMax) : ''
+          comp.material || ''
         ].join(SEP));
       }
     }

@@ -21,8 +21,8 @@
           <span class="line-2 gradient-text">{{ typewriterText2() }}<span class="cursor" [class.visible]="showCursor2()">|</span></span>
         </h1>
         <p class="hero-subtitle" [class.visible]="subtitleVisible()">
-          Tehisintellekt analüüsib sinu projekti, tuvastab kõik ehitusetapid,<br>
-          leiab üle <strong>{{ totalSupplierCount() | number }}</strong> tegija ja arvutab turuhinna — <em>sekunditega.</em>
+          Tehisintellekt analüüsib sinu projekti, tuvastab kõik ehitusetapid<br>
+          ja leiab üle <strong>{{ totalSupplierCount() | number }}</strong> tegija — <em>sekunditega.</em>
         </p>
       </div>
     </div>
@@ -290,7 +290,7 @@
                 <span>{{ loadingText() }}</span>
               </div>
             } @else {
-              <span>Kinnita kogused ja arvuta hinnad</span>
+              <span>Kinnita kogused ja otsi tegijaid</span>
               <span class="button-sparkle">✨</span>
             }
           </button>
@@ -393,9 +393,6 @@
               }
 
               <div class="stage-header" (click)="toggleStage(stage)">
-                <!-- Price Level Bar -->
-                <div class="price-level-bar" [class]="getPriceLevel(stage)"></div>
-
                 <!-- Checkbox -->
                 <div class="stage-checkbox" (click)="toggleSelection(stage, $event)">
                   <div class="checkbox" [class.checked]="stage.selected">
@@ -419,12 +416,8 @@
                   </div>
                 </div>
 
-                <!-- Price & Suppliers -->
+                <!-- Suppliers -->
                 <div class="stage-right">
-                  <div class="stage-price">
-                    {{ formatCurrency(stage.priceEstimateMin) }} — {{ formatCurrency(stage.priceEstimateMax) }}
-                    <span class="estimate-badge" *ngIf="stage.priceEstimateMin && stage.priceEstimateMax">hinnanguline</span>
-                  </div>
                   <div class="supplier-count">
                     <span class="supplier-badge">
                       Leitud {{ stage.supplierCount }} tegijat
@@ -451,23 +444,6 @@
                     <p>{{ stage.description }}</p>
                   </div>
 
-                  <div class="detail-section">
-                    <label>Turuhind</label>
-                    <div class="price-bar-wrapper">
-                      <div class="price-bar">
-                        <div class="price-fill"></div>
-                        <div class="price-median" [style.left.%]="getMedianPosition(stage)">
-                          <div class="median-marker"></div>
-                          <span class="median-label">{{ formatCurrency(stage.priceEstimateMedian) }}</span>
-                        </div>
-                      </div>
-                      <div class="price-labels">
-                        <span>{{ formatCurrency(stage.priceEstimateMin) }}</span>
-                        <span>{{ formatCurrency(stage.priceEstimateMax) }}</span>
-                      </div>
-                    </div>
-                  </div>
-
                   @if (stage.dependencies && stage.dependencies.length > 0) {
                     <div class="detail-section">
                       <label>Sõltuvused</label>
@@ -479,13 +455,6 @@
                     </div>
                   }
 
-                  <!-- Price Breakdown -->
-                  <app-price-breakdown
-                    [category]="stage.category"
-                    [quantity]="stage.quantity"
-                    [unit]="stage.unit"
-                    [autoLoad]="true"
-                  ></app-price-breakdown>
                 </div>
               }
             </div>
@@ -557,29 +526,14 @@
         @if (!rfqSent()) {
           <div class="summary-card glass-card">
             <div class="summary-content">
-              <div class="summary-left">
-                <div class="summary-label">Tööde maksumus</div>
-                <div class="summary-price">
-                  {{ formatCurrency(animatedTotalMin()) }} — {{ formatCurrency(animatedTotalMax()) }}
-                </div>
-                @if (hasDependentMaterials()) {
-                  <div class="summary-materials-line">
-                    Materjalid: {{ formatCurrency(result()?.materialsTotalMin || 0) }} — {{ formatCurrency(result()?.materialsTotalMax || 0) }}
-                  </div>
-                  <div class="summary-grand">
-                    Kokku: {{ formatCurrency(result()?.grandTotalMin || 0) }} — {{ formatCurrency(result()?.grandTotalMax || 0) }}
-                  </div>
-                }
-              </div>
-              <div class="summary-divider"></div>
-              <div class="summary-right">
-                <div class="summary-stat">
-                  <div class="stat-number">{{ animatedSupplierCount() }}</div>
-                  <div class="stat-label">tegijat leitud</div>
-                </div>
+              <div class="summary-stats-row">
                 <div class="summary-stat">
                   <div class="stat-number">{{ selectedStages().length }}</div>
                   <div class="stat-label">etappi valitud</div>
+                </div>
+                <div class="summary-stat">
+                  <div class="stat-number">{{ animatedSupplierCount() }}</div>
+                  <div class="stat-label">tegijat leitud</div>
                 </div>
                 @if (hasDependentMaterials()) {
                   <div class="summary-stat">

@@ -15,7 +15,6 @@ import {
   CATEGORY_ICONS
 } from '../../models/project.model';
 import { RfqRequest } from '../../models/rfq.model';
-import { PriceBreakdownComponent } from '../../components/price-breakdown/price-breakdown.component';
 import { PipeSystemBreakdownComponent } from '../../components/pipe-system-breakdown/pipe-system-breakdown.component';
 import { DependentMaterialsComponent } from '../../components/dependent-materials/dependent-materials.component';
 import { PipeLengthSummaryComponent } from '../../components/pipe-length-summary/pipe-length-summary.component';
@@ -36,7 +35,7 @@ interface CategoryCompanies {
 @Component({
   selector: 'app-project-new',
   standalone: true,
-  imports: [CommonModule, FormsModule, PriceBreakdownComponent, PipeSystemBreakdownComponent, DependentMaterialsComponent, PipeLengthSummaryComponent, SummaryTableComponent],
+  imports: [CommonModule, FormsModule, PipeSystemBreakdownComponent, DependentMaterialsComponent, PipeLengthSummaryComponent, SummaryTableComponent],
   templateUrl: './project-new.component.html',
   styleUrls: ['./project-new.component.scss']
 })
@@ -137,8 +136,6 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
   };
 
   // Animated counters
-  animatedTotalMin = signal(0);
-  animatedTotalMax = signal(0);
   animatedSupplierCount = signal(0);
 
   categoryLabels = CATEGORY_LABELS;
@@ -166,30 +163,6 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     const r = this.result();
     if (!r) return [];
     return r.stages.filter(s => s.selected);
-  });
-
-  selectedTotalMin = computed(() => {
-    const stageSum = this.selectedStages().reduce((sum, s) => sum + (s.priceEstimateMin || 0), 0);
-    const r = this.result();
-    // Use backend's enhanced estimate if higher (includes IFC-based price calculation)
-    if (r && r.totalEstimateMin && r.totalEstimateMin > stageSum) {
-      return r.totalEstimateMin;
-    }
-    return stageSum;
-  });
-
-  selectedTotalMax = computed(() => {
-    const stageSum = this.selectedStages().reduce((sum, s) => sum + (s.priceEstimateMax || 0), 0);
-    const r = this.result();
-    // Use backend's enhanced estimate if higher (includes IFC-based price calculation)
-    if (r && r.totalEstimateMax && r.totalEstimateMax > stageSum) {
-      return r.totalEstimateMax;
-    }
-    return stageSum;
-  });
-
-  selectedTotalMedian = computed(() => {
-    return this.selectedStages().reduce((sum, s) => sum + (s.priceEstimateMedian || 0), 0);
   });
 
   selectedSupplierCount = computed(() => {
@@ -561,10 +534,9 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
 
     this.isLoading.set(true);
     this.loadingMessages = [
-      'Arvutan turuhinda...',
       'Otsin sobivaid tegijaid...',
-      'Võrdlen pakkumisi...',
-      'Koostan hinnakalkulatsiooni...'
+      'Analüüsin kategooriaid...',
+      'Koostan tulemust...'
     ];
     this.loadingMessageIndex.set(0);
     this.loadingText.set(this.loadingMessages[0]);
@@ -610,8 +582,6 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
   }
 
   private animateCounters(): void {
-    const targetMin = this.selectedTotalMin();
-    const targetMax = this.selectedTotalMax();
     const targetSuppliers = this.selectedSupplierCount();
     const duration = 1500;
     const steps = 60;
@@ -621,14 +591,10 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     const interval = setInterval(() => {
       step++;
       const progress = this.easeOutQuart(step / steps);
-      this.animatedTotalMin.set(Math.round(targetMin * progress));
-      this.animatedTotalMax.set(Math.round(targetMax * progress));
       this.animatedSupplierCount.set(Math.round(targetSuppliers * progress));
 
       if (step >= steps) {
         clearInterval(interval);
-        this.animatedTotalMin.set(targetMin);
-        this.animatedTotalMax.set(targetMax);
         this.animatedSupplierCount.set(targetSuppliers);
       }
     }, stepTime);
@@ -668,8 +634,6 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     const r = this.result();
     if (r) {
       r.stages.forEach(s => s.selected = false);
-      this.animatedTotalMin.set(0);
-      this.animatedTotalMax.set(0);
       this.animatedSupplierCount.set(0);
     }
   }
@@ -747,22 +711,6 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     return this.categoryIcons[category] || '📦';
   }
 
-  getPriceLevel(stage: ProjectStage): string {
-    const median = stage.priceEstimateMedian || 0;
-    const max = stage.priceEstimateMax || 1;
-    const ratio = median / max;
-    if (ratio < 0.4) return 'low';
-    if (ratio < 0.7) return 'medium';
-    return 'high';
-  }
-
-  getMedianPosition(stage: ProjectStage): number {
-    const min = stage.priceEstimateMin || 0;
-    const max = stage.priceEstimateMax || 1;
-    const median = stage.priceEstimateMedian || 0;
-    return ((median - min) / (max - min)) * 100;
-  }
-
   setTab(tab: 'work' | 'materials' | 'summary'): void {
     this.activeTab.set(tab);
   }
@@ -777,8 +725,6 @@ export class ProjectNewComponent implements OnInit, OnDestroy {
     this.rfqSentCount.set(0);
     this.resultsVisible.set(false);
     this.visibleCardCount.set(0);
-    this.animatedTotalMin.set(0);
-    this.animatedTotalMax.set(0);
     this.animatedSupplierCount.set(0);
     this.showPreview.set(false);
     this.previewCompanies.set([]);

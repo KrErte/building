@@ -25,7 +25,6 @@ import { ProjectStage, DependentMaterial } from '../../models/project.model';
           <span class="col-name">Nimetus</span>
           <span class="col-qty">Kogus</span>
           <span class="col-unit">Ühik</span>
-          <span class="col-price">Hinnanguline maksumus</span>
         </div>
 
         @for (stage of stages; track stage.name) {
@@ -33,23 +32,13 @@ import { ProjectStage, DependentMaterial } from '../../models/project.model';
             <span class="col-name">{{ stage.name }}</span>
             <span class="col-qty">{{ stage.quantity | number:'1.0-1' }}</span>
             <span class="col-unit">{{ stage.unit }}</span>
-            <span class="col-price">
-              @if (stage.priceEstimateMin && stage.priceEstimateMax) {
-                {{ stage.priceEstimateMin | number:'1.0-0' }}–{{ stage.priceEstimateMax | number:'1.0-0' }} €
-              } @else {
-                –
-              }
-            </span>
           </div>
         }
 
         <div class="subtotal-row">
-          <span class="col-name subtotal-label">Tööde kokku</span>
+          <span class="col-name subtotal-label">Tööde kokku: {{ stages.length }} etappi</span>
           <span class="col-qty"></span>
           <span class="col-unit"></span>
-          <span class="col-price subtotal-value">
-            {{ getWorkTotalMin() | number:'1.0-0' }}–{{ getWorkTotalMax() | number:'1.0-0' }} €
-          </span>
         </div>
 
         <!-- Materials section -->
@@ -65,34 +54,21 @@ import { ProjectStage, DependentMaterial } from '../../models/project.model';
               <span class="col-name">{{ mat.materialName }}</span>
               <span class="col-qty">{{ mat.totalQuantity | number:'1.0-2' }}</span>
               <span class="col-unit">{{ mat.unit }}</span>
-              <span class="col-price">
-                @if (mat.totalPriceMin && mat.totalPriceMax) {
-                  {{ mat.totalPriceMin | number:'1.0-0' }}–{{ mat.totalPriceMax | number:'1.0-0' }} €
-                } @else {
-                  <span class="no-price">hind puudub</span>
-                }
-              </span>
             </div>
           }
 
           <div class="subtotal-row">
-            <span class="col-name subtotal-label">Materjalide kokku</span>
+            <span class="col-name subtotal-label">Materjalide kokku: {{ materials.length }} materjali</span>
             <span class="col-qty"></span>
             <span class="col-unit"></span>
-            <span class="col-price subtotal-value">
-              {{ getMaterialsTotalMin() | number:'1.0-0' }}–{{ getMaterialsTotalMax() | number:'1.0-0' }} €
-            </span>
           </div>
         }
 
         <!-- Grand total -->
         <div class="grand-total-row">
-          <span class="col-name grand-label">KOKKU</span>
+          <span class="col-name grand-label">KOKKU: {{ stages.length }} etappi, {{ materials.length }} materjali</span>
           <span class="col-qty"></span>
           <span class="col-unit"></span>
-          <span class="col-price grand-value">
-            {{ getGrandTotalMin() | number:'1.0-0' }}–{{ getGrandTotalMax() | number:'1.0-0' }} €
-          </span>
         </div>
       </div>
     </div>
@@ -154,7 +130,7 @@ import { ProjectStage, DependentMaterial } from '../../models/project.model';
 
     .table-header-row {
       display: grid;
-      grid-template-columns: 2.5fr 0.8fr 0.6fr 1.5fr;
+      grid-template-columns: 3fr 0.8fr 0.6fr;
       padding: 10px 16px;
       background: rgba(255, 255, 255, 0.03);
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -167,7 +143,7 @@ import { ProjectStage, DependentMaterial } from '../../models/project.model';
 
     .table-row {
       display: grid;
-      grid-template-columns: 2.5fr 0.8fr 0.6fr 1.5fr;
+      grid-template-columns: 3fr 0.8fr 0.6fr;
       padding: 10px 16px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.03);
       font-size: 0.88rem;
@@ -185,7 +161,7 @@ import { ProjectStage, DependentMaterial } from '../../models/project.model';
 
     .subtotal-row {
       display: grid;
-      grid-template-columns: 2.5fr 0.8fr 0.6fr 1.5fr;
+      grid-template-columns: 3fr 0.8fr 0.6fr;
       padding: 10px 16px;
       background: rgba(255, 255, 255, 0.03);
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -205,7 +181,7 @@ import { ProjectStage, DependentMaterial } from '../../models/project.model';
 
     .grand-total-row {
       display: grid;
-      grid-template-columns: 2.5fr 0.8fr 0.6fr 1.5fr;
+      grid-template-columns: 3fr 0.8fr 0.6fr;
       padding: 14px 16px;
       background: rgba(99, 102, 241, 0.1);
       border-top: 2px solid rgba(99, 102, 241, 0.3);
@@ -234,7 +210,7 @@ import { ProjectStage, DependentMaterial } from '../../models/project.model';
       .table-row,
       .subtotal-row,
       .grand-total-row {
-        grid-template-columns: 1.5fr 0.6fr 0.5fr 1fr;
+        grid-template-columns: 2fr 0.6fr 0.5fr;
       }
     }
   `]
